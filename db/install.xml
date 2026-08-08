@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/lmshomepage/db" VERSION="20260318" COMMENT="XMLDB file for local/lmshomepage">
+  <TABLES>
+
+    <TABLE NAME="local_lmshomepage_reminders" COMMENT="Throttle tracking — one row per student+course+risk_level to prevent duplicate sends">
+      <FIELDS>
+        <FIELD NAME="id"         TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid"     TYPE="int"  LENGTH="10" NOTNULL="true" COMMENT="Moodle user ID of the student"/>
+        <FIELD NAME="courseid"   TYPE="int"  LENGTH="10" NOTNULL="true" COMMENT="Moodle course ID"/>
+        <FIELD NAME="risk_level" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="low" COMMENT="Risk level: low, medium, or high"/>
+        <FIELD NAME="timesent"   TYPE="int"  LENGTH="10" NOTNULL="true" COMMENT="Unix timestamp of most recent send at this level"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid_courseid_risk" UNIQUE="false" FIELDS="userid, courseid, risk_level"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_lmshomepage_log" COMMENT="Full audit log of every attendance notification sent — used for the admin report">
+      <FIELDS>
+        <FIELD NAME="id"             TYPE="int"  LENGTH="10"  NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="timesent"       TYPE="int"  LENGTH="10"  NOTNULL="true" COMMENT="Unix timestamp when notification was dispatched"/>
+        <FIELD NAME="userid"         TYPE="int"  LENGTH="10"  NOTNULL="true" COMMENT="Moodle user ID of the student being reported on"/>
+        <FIELD NAME="student_name"   TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Student full name at time of send (cached for reporting)"/>
+        <FIELD NAME="student_email"  TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Student email at time of send"/>
+        <FIELD NAME="courseid"       TYPE="int"  LENGTH="10"  NOTNULL="true" COMMENT="Moodle course ID"/>
+        <FIELD NAME="course_name"    TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Course full name at time of send (cached for reporting)"/>
+        <FIELD NAME="activity_name"  TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Attendance activity name"/>
+        <FIELD NAME="risk_level"     TYPE="char" LENGTH="10"  NOTNULL="true" DEFAULT="low" COMMENT="Risk level: low, medium, or high"/>
+        <FIELD NAME="percentage"     TYPE="int"  LENGTH="3"   NOTNULL="true" DEFAULT="0" COMMENT="Student attendance percentage at time of send"/>
+        <FIELD NAME="kpi_threshold"  TYPE="int"  LENGTH="3"   NOTNULL="true" DEFAULT="80" COMMENT="KPI threshold that was breached"/>
+        <FIELD NAME="recipient_type" TYPE="char" LENGTH="10"  NOTNULL="true" DEFAULT="student" COMMENT="Who received the message: student, teacher, or admin"/>
+        <FIELD NAME="recipient_userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Moodle user ID of recipient (0 for external admin email)"/>
+        <FIELD NAME="recipient_name" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Recipient display name or email address"/>
+        <FIELD NAME="subject"        TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Email subject line that was sent"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="timesent"          UNIQUE="false" FIELDS="timesent"/>
+        <INDEX NAME="userid_courseid"   UNIQUE="false" FIELDS="userid, courseid"/>
+        <INDEX NAME="risk_level"        UNIQUE="false" FIELDS="risk_level"/>
+        <INDEX NAME="recipient_type"    UNIQUE="false" FIELDS="recipient_type"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_lmshomepage_commhub" COMMENT="CommHub communication log — one row per automated notification sent by LMS Hosting Services (M7/M8/M9)">
+      <FIELDS>
+        <FIELD NAME="id"              TYPE="int"  LENGTH="10"  NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="timesent"        TYPE="int"  LENGTH="10"  NOTNULL="true" COMMENT="Unix timestamp when notification was sent"/>
+        <FIELD NAME="studentid"       TYPE="int"  LENGTH="10"  NOTNULL="true" COMMENT="Moodle user ID of the student"/>
+        <FIELD NAME="student_name"    TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Student full name at time of send"/>
+        <FIELD NAME="student_email"   TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Student email at time of send"/>
+        <FIELD NAME="trainerid"       TYPE="int"  LENGTH="10"  NOTNULL="true" DEFAULT="0" COMMENT="Moodle user ID of trainer (0 if not applicable)"/>
+        <FIELD NAME="trainer_name"    TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Trainer full name at time of send"/>
+        <FIELD NAME="courseid"        TYPE="int"  LENGTH="10"  NOTNULL="true" DEFAULT="0" COMMENT="Related Moodle course ID"/>
+        <FIELD NAME="course_name"     TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Course full name at time of send"/>
+        <FIELD NAME="assessment_name" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Assessment or activity name"/>
+        <FIELD NAME="channel"         TYPE="char" LENGTH="10"  NOTNULL="true" DEFAULT="email" COMMENT="Delivery channel: email, sms, or moodle"/>
+        <FIELD NAME="message_subject" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Message subject line"/>
+        <FIELD NAME="message_body"    TYPE="text"              NOTNULL="true" COMMENT="Full message body text"/>
+        <FIELD NAME="status"          TYPE="char" LENGTH="20"  NOTNULL="true" DEFAULT="sent" COMMENT="Delivery status: sent, failed, or pending"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="timesent"  UNIQUE="false" FIELDS="timesent"/>
+        <INDEX NAME="studentid" UNIQUE="false" FIELDS="studentid"/>
+        <INDEX NAME="trainerid" UNIQUE="false" FIELDS="trainerid"/>
+        <INDEX NAME="channel"   UNIQUE="false" FIELDS="channel"/>
+        <INDEX NAME="status"    UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+
+  </TABLES>
+</XMLDB>

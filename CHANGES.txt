@@ -1,0 +1,408 @@
+== LMS Home Page Plugin — Changelog ==
+
+Version 2.11.38  (2026-08-03)
+------------------------------
+CHANGED: version bump only (code 2026080303 → 2026080304). Forces Moodle to
+  re-detect and run the upgrade. Identical code to 2.11.37 — no functional or
+  schema changes.
+No schema changes.
+
+Version 2.11.37  (2026-08-03)
+------------------------------
+CHANGED: version bump only (code 2026080302 → 2026080303). Forces Moodle to
+  re-detect and run the upgrade on sites that had already recorded 2.11.36,
+  ensuring the quiz pass/fail + strict completion-criteria changes are applied.
+  Identical code to 2.11.36 — no functional or schema changes.
+No schema changes.
+
+Version 2.11.36  (2026-08-03)
+------------------------------
+FIXED: get_completion_report — quizzes now show Passed/Not Passed like assignments.
+  A quiz whose completion rule is "mark complete on submit" stores
+  completionstate=1 (Complete), while assignments with "require passing grade"
+  store 2/3 — so the same cohort showed "Complete" on the quiz but Passed/Not
+  Passed on the assignments. Step 8b now treats the gradebook "grade to pass"
+  threshold as authoritative: when gradepass > 0 and a finalgrade exists, a plain
+  Complete (or missing) record is upgraded to Passed (>= gradepass) / Not Passed
+  (< gradepass). Native Pass/Fail records are untouched; the real completion date
+  is preserved. Activities with no pass threshold keep their existing state.
+  NOTE: the quiz must have a "Grade to pass" value set for pass/fail to derive.
+No schema changes.
+
+Version 2.11.35  (2026-08-03)
+------------------------------
+CHANGED: version bump only (code 2026073108 → 2026080301). Forces Moodle to
+  re-detect and run the plugin upgrade on sites that had already recorded the
+  2.11.34 version, ensuring the strict completion-criteria filter is picked up.
+  Identical code to 2.11.34 — no functional or schema changes.
+No schema changes.
+
+Version 2.11.34  (2026-07-31)
+------------------------------
+FIXED: get_completion_report — course-completion-criteria filter (Step 3b) is now
+  STRICT. Previously, if the course_completion_criteria (criteriatype=4) query
+  returned no rows, the report fell back to showing ALL completion-tracked
+  activities — so non-criteria items (forums, practice quizzes) leaked in as extra
+  columns. Now a successful-but-empty criteria query yields NO activity columns;
+  an un-ticked activity is never listed. The "show all" fallback is retained only
+  when the query throws (table missing/inaccessible).
+IMPROVED: criteria matching hardened — moduleinstance is treated as a cmid (Moodle
+  standard) and, if unmatched, resolved via (module, instance) → cmid.
+No schema changes.
+
+Version 2.11.33  (2026-07-31)
+------------------------------
+FIXED: get_completion_report — generalised the gradebook fallback (Step 8b) from
+  quiz-only to ALL graded completion-criteria activities. v2.11.31 only rescued
+  quizzes (grade_items.component='mod_quiz'), so assignments, SCORM, workshops,
+  lessons and H5P criteria rendered blank for students who completed them before
+  activity-completion tracking was enabled. Step 8b now matches every activity
+  grade item (itemtype='mod') back to its cmid via (itemmodule, iteminstance) and
+  applies the same Pass/Not Passed/Complete derivation. Existing
+  course_modules_completion records are never overwritten.
+No schema changes.
+
+Version 2.11.32  (2026-07-31)
+------------------------------
+FIXED: get_completion_report — replaced get_records_sql() with get_recordset_sql()
+  in Step 8a and Step 8b. get_records_sql() keys rows by the first column, so
+  Step 8a (userid first) kept only ONE completion record per student and Step 8b
+  (quiz_instance first) kept only ONE student's grade per quiz — the grade
+  fallback effectively returned nothing. Recordsets iterate every row with no key
+  collision.
+No schema changes.
+
+Version 2.11.31  (2026-07-31)
+------------------------------
+FIXED: get_completion_report — filter activity columns to course completion
+  criteria only. Previously returned all completion-tracked activities
+  (cm.completion > 0); now queries course_completion_criteria (criteriatype=4)
+  and filters actDefs to those cmids.
+ADDED: get_completion_report — quiz grade fallback (Step 8b). Students who
+  completed quizzes before activity-completion tracking was enabled have no
+  course_modules_completion record; Step 8b derives state 2 (Pass) / 3 (Fail) /
+  1 (Complete) from grade_items + grade_grades without overwriting existing
+  records.
+No schema changes.
+
+Version 2.11.30  (2026-07-31)
+------------------------------
+FIXED: get_trainers — restore trainer dropdown on sites without the wombat_trainer
+  profile field. The v2.11.25 rewrite returned [] when the field was absent
+  (e.g. AIOP); now falls back to a role-based query (editingteacher/teacher/
+  trainer in a visible course with ≥1 active student). Profile-field (Wombat)
+  path unchanged.
+No schema changes.
+
+Version 2.11.29  (2026-07-31)
+------------------------------
+FIXED: get_vet_grade_report — exclude attendance module grade items. When
+  attendance is removed from the Course Total, its grade_items row remains with
+  hidden=0 and leaked into the Reports Hub. Added WHERE gi.itemmodule !=
+  'attendance'.
+No schema changes.
+
+Version 2.11.28  (2026-07-31)
+------------------------------
+FIXED: get_vet_grade_report — trainer filter returned empty results. Moodle's DBAL
+  forbids reusing a named parameter, so :trainer_userid (used in both t_map_grp and
+  t_map_crs) was bound only once and t_map_crs matched nothing. Split into
+  :trainer_userid / :trainer_userid2 bound to the same value.
+No schema changes.
+
+Version 2.11.27  (2026-07-31)
+------------------------------
+FIXED: get_user_courses — include ALL enrolment records (active, suspended,
+  expired), not just active + formally-completed. ITLC's "Credit Deemed" (-CD)
+  workflow suspends enrolment without writing course_completions, so those courses
+  vanished from the student dashboard. Removed the status/timeend predicate; hidden
+  courses are returned with visible=0 for an "archived" label.
+No schema changes.
+
+Version 2.11.26  (2026-07-27)
+------------------------------
+IMPROVED: get_assessment_submissions — Training Plan due dates now override
+  assign.duedate where a plan entry exists (priority: userseq manualoverride >
+  schedule enddate > assign.duedate). Both training-plan tables guarded with
+  table_exists() for sites without the block.
+ADDED: get_assessment_submissions — deemed_competent_date from
+  local_finalmarkingsheet.deemedcompetentdate (joined on userid, courseid;
+  0 when absent/unmarked).
+No schema changes.
+
+Version 2.11.25  (2026-07-28)
+------------------------------
+CHANGED: unified trainer allocation source across get_trainer_allocations,
+  get_assessment_submissions, get_trainers and get_completed_units — all now derive
+  the trainer from the 'wombat_trainer' custom profile field instead of Moodle group
+  co-membership (which duplicated rows and picked the wrong trainer for multi-group
+  students).
+FIXED: get_trainer_allocations rewritten to one row per student.
+FIXED: get_course_completion_counts — added a student-role JOIN so only student
+  completions are counted (dashboard KPI previously counted admins/teachers).
+ADDED: get_monthly_active_user_count — since_timestamp (calendar-month start) and
+  student_only params.
+No schema changes.
+
+Version 2.11.24  (2026-07-27)
+------------------------------
+FIXED: get_attendance_report — attendance % now divides by sessions actually MARKED,
+  not all past sessions, so students aren't penalised for unmarked sessions
+  (e.g. 1/1 = 100% instead of 1/7 = 14%). New field sessions_marked returned;
+  total_sessions retained for reference.
+No schema changes.
+
+Version 2.11.23  (2026-07-27)
+------------------------------
+FIXED: get_trainers — Trainer View showed too many names and wrong student counts.
+  Trainer list and student count are now both derived from group co-membership with
+  an actively-enrolled student (HAVING COUNT > 0), making the KPI tiles and the
+  allocation report consistent. Removes former staff in archived courses and
+  course-overlap overcounting.
+No schema changes.
+
+Version 2.11.22  (2026-07-27)
+------------------------------
+FIXED: get_trainer_allocations — returned zero rows on sites where trainer groups
+  live in a cohort/hub course rather than the unit-assessment courses. Group lookup
+  is now decoupled from the enrolment course; last-access is the MAX across all
+  enrolled courses. Trainer role check unchanged.
+No schema changes.
+
+Version 2.11.21  (2026-07-27)
+------------------------------
+FIXED: get_assessment_submissions — trainer lookup was scoped to the assignment's
+  course (trainer_id 0 for ~99% of rows); now a per-student lookup (GROUP BY userid),
+  aligning with get_trainer_allocations. Fixes trainer backlog counts, Trainer View
+  filtering and performance marking data.
+FIXED: get_trainers — added username NOT IN ('admin') as defence-in-depth.
+No schema changes.
+
+Version 2.11.20  (2026-07-26)
+------------------------------
+FIXED: XMLDB warnings — CHAR NOT NULL fields in db/install.xml had DEFAULT="",
+  which violates the Moodle XMLDB spec. Removed the empty-string defaults across
+  local_lmshomepage_log and local_lmshomepage_commhub (student_name, student_email,
+  course_name, activity_name, recipient_name, subject, trainer_name,
+  assessment_name, message_subject) and the matching add_field() calls.
+No schema changes (columns already correct on all sites).
+
+Version 2.11.19  (2026-07-23)
+------------------------------
+FIXED: get_cohort_matrix — restored cohortid in training plan subquery GROUP BY
+  (now userid, cohortid, courseid) and JOIN condition (tp.cohortid = coh.id).
+  Prevents multi-cohort students bleeding outcome from cohort B into cohort A matrix.
+FIXED: get_trainer_allocations + get_assessment_submissions — scoped trainer role
+  EXISTS check to course context OR ancestor category (contextlevel 40 path LIKE).
+  Excludes teachers assigned only to unrelated courses or at system level.
+No schema changes.
+
+Version 2.11.18  (2026-07-23)
+------------------------------
+FIXED: get_assessment_submissions + get_trainer_allocations — replaced unbounded
+  cohort/group/trainer JOINs with deterministic dedup subqueries (MIN group ID,
+  MIN trainer ID, MIN cohort name). Prevents Cartesian product row explosion that
+  caused the marking report to time out.
+  Trainer role check now covers ANY context level (course/category/system).
+FIXED: get_cohort_matrix — removed cohortid from training plan JOIN (was causing
+  mismatches); added 'N/A' alongside 'NA' in CASE WHEN; changed outcome logic from
+  "all rows = X" to "any row = X" (RPL/CT/NA priority).
+FIXED: get_trainers — added test-account exclusions (lastaccess > 0, firstname NOT
+  LIKE 'test%', username NOT IN admin/guest); added 'trainer' role.
+No schema changes.
+
+Version 2.11.17  (2026-07-23)
+------------------------------
+FIXED: get_vet_grade_report — excluded system/test accounts from trainer lookup
+  subquery so MIN(u_t.id) no longer resolves to a "Test Teacher" account.
+  Also includes 'trainer' role shortname alongside editingteacher/teacher.
+FIXED: get_vet_grade_report — replaced unbounded cohort LEFT JOIN with a
+  deterministic dedup subquery (MIN cohort name per student) to eliminate
+  Cartesian-product row duplication.
+FIXED: get_attendance_report — same trainer exclusion + dedup subqueries for group
+  AND cohort joins; also includes 'trainer' role shortname.
+FIXED: get_attendance_report — attendance_pct denominator changed from 'marked
+  sessions only (P/L/E/A)' to 'total_sessions' to match Moodle attendance export.
+No schema changes.
+
+Version 2.11.16  (2026-07-22)
+------------------------------
+FIXED: lib.php is_active() — added hard exclusion list for blocked layouts
+  (admin, maintenance, login, popup, embedded, secure, redirect) and pagetype
+  prefixes (admin-*, my-*) checked BEFORE plugin-enabled/api-url checks.
+  Prevents CSS injection on admin pages when $PAGE->pagetype is not yet set.
+FIXED: fullwidth_css() — removed #page-header, .wombat-header/.wombat-top-bar,
+  and body padding-top:0 override (Wombat theme handles padding itself).
+No schema changes.
+
+Version 2.11.15  (2026-07-22)
+------------------------------
+FIXED: get_user_courses — include completed courses with suspended/expired
+  enrolments. Adds OR EXISTS check against course_completions so courses with
+  timecompleted IS NOT NULL always appear regardless of enrolment status.
+No schema changes.
+
+Version 2.11.14  (2026-07-21)
+------------------------------
+FIXED: Six AIOP report fixes — grade report group-aware trainer lookup, deterministic
+  single-group subquery, attendance trainer filter moved inside t_map subquery,
+  session groupid filter (groupid=0 or student's own group), denominator changed
+  from total_sessions to marked sessions.
+No schema changes.
+
+Version 2.11.13  (2026-07-21)
+------------------------------
+NEW: local_lmshomepage_get_slim_courses — lightweight course list returning only
+  {id, fullname, shortname, categoryid, visible, numsections}. ~50× smaller
+  payload than core_course_get_courses. Replaces it in all site cache builders.
+No schema changes.
+
+Version 2.11.12  (2026-07-20)
+------------------------------
+NEW: local_lmshomepage_get_completion_report — per-student activity + course
+  completion data for one course with INITIAL completion dates. Reads directly
+  from mdl_course_modules_completion, bypassing capability restrictions.
+  Required for ITLC token which lacks report/completion:view.
+
+Version 2.11.11  (2026-07-20)
+------------------------------
+FIXED: get_assessment_submissions — extended trainer role check to cover category
+  context (contextlevel 40). Prevents trainer showing blank for teachers assigned
+  at category level rather than course level.
+
+Version 2.11.10  (2026-07-20)
+------------------------------
+FIXED: PostgreSQL compatibility — removed JOIN inside cmc subquery, replaced
+  timecompleted with timemodified in course_modules_completion queries.
+  Resolves dml_read_exception on ITLC (PostgreSQL) site.
+
+Version 2.11.9  (2026-07-20)
+------------------------------
+FIXED: get_assessment_submissions — deduplication for students enrolled in multiple
+  cohorts. Replaced GROUP BY with MIN(cohort) subquery.
+
+Version 2.11.8  (2026-07-20)
+------------------------------
+FIXED: get_cohort_matrix — NA outcome support; cell drill-down panel data.
+
+Version 2.11.7  (2026-07-20)
+------------------------------
+FIXED: get_trainer_allocations — trainer JOIN conditional guard for sites without
+  wombat_trainer profile field (fieldid=-1 fallback).
+
+Version 2.11.6  (2026-07-20)
+------------------------------
+FIXED: Wombat trainer profile field JOIN — conditional trainer JOIN caused
+  dml_read_exception when wombat_trainer profile field absent.
+  Fix: always join with fieldid=-1 fallback.
+
+Version 2.11.5  (2026-07-20)
+------------------------------
+FIXED: get_vet_grade_report — group_name blank for most students due to unbounded
+  cohort LEFT JOIN causing Cartesian product. Now uses deterministic dedup subquery.
+
+Version 2.11.4  (2026-07-20)
+------------------------------
+FIXED: get_vet_grade_report — Moodle grade scale mapping for NYC/C/RPL/CT outcomes.
+
+Version 2.11.3  (2026-07-20)
+------------------------------
+FIXED: get_attendance_report — session groupid filter to prevent cross-group
+  session pollution inflating total_sessions count.
+
+Version 2.11.2  (2026-07-20)
+------------------------------
+FIXED: get_attendance_report — trainer filter position in SQL subquery.
+
+Version 2.11.1  (2026-07-20)
+------------------------------
+NEW: local_lmshomepage_get_vet_grade_report — per-student grade data with VET
+  competency status (C/NYC/RPL/CT) from grade scale. Supports 5 report types.
+NEW: local_lmshomepage_get_attendance_report — per-student attendance stats
+  (attended, missed, %, at-risk) from mod_attendance.
+
+Version 2.11.0  (2026-07-20)
+------------------------------
+NEW: local_lmshomepage_get_user_courses — enrolled courses with completion status
+  and activity progress % in one call. Replaces 1+2N per-learner API calls.
+
+Version 2.10.1  (2026-07-20)
+------------------------------
+FIXED: CommHub log_commhub write permission (type changed to 'write').
+
+Version 2.10.0  (2026-07-20)
+------------------------------
+NEW: local_lmshomepage_get_slim_courses (earlier iteration).
+NEW: local_lmshomepage_get_all_categories — all course categories including hidden.
+NEW: local_lmshomepage_get_completion_report (earlier iteration, ITLC PostgreSQL).
+
+Version 2.9.x  (2026-07-16 → 2026-07-20)
+------------------------------
+NEW: local_lmshomepage_get_cohort_matrix — flat unit × student VET outcome grid.
+NEW: local_lmshomepage_get_trainer_allocations — student-to-trainer mapping.
+NEW: local_lmshomepage_log_commhub — CommHub communication log writer.
+NEW: local_lmshomepage_get_trainers — trainer list with email + student count.
+NEW: local_lmshomepage_get_admin_emails — site administrator emails.
+FIXED: Various SQL fixes and deduplication across VET reporting functions.
+
+Version 2.8.x  (2026-07-09 → 2026-07-16)
+------------------------------
+NEW: local_lmshomepage_get_assessment_submissions — per-student assignment status
+  (NYS/IP/Submitted/Graded), overdue days, and trainer details.
+NEW: local_lmshomepage_get_student_inactivity — students inactive N+ days.
+NEW: local_lmshomepage_get_completed_units — completed activities in date range.
+FIXED: SQL refinements and schema additions for VET reporting workflow.
+
+Version 2.7.x  (2026-06-26 → 2026-07-09)
+------------------------------
+FIXED: hook_callbacks.php — CSP-compliant widget injection via external
+  widget_guard.js + MutationObserver (replaces inline script approach).
+FIXED: Wombat custom theme compatibility — is_active() now also checks
+  ($COURSE->id === SITEID) for themes rendering site home as a course view.
+
+Version 2.6.x  (2026-05-01 → 2026-06-26)
+------------------------------
+NEW: local_lmshomepage_get_enrolled_students — bulk enrolment query with suspended
+  field (replaces N individual core_enrol_get_enrolled_users calls).
+NEW: CommHub tables and log_commhub function (initial implementation).
+NEW: local_lmshomepage_get_admin_emails (initial implementation).
+FIXED: Moodle M8 overdue automation — dedup, escalation logic, Moodle notifications.
+
+Version 2.5.3  (2026-04-27)
+------------------------------
+FIXED: Reverted get_active_user_count SQL back to the correct original form:
+  mdl_user WHERE suspended=0 AND deleted=0 AND id!=1 AND username!='guest'
+
+  This is confirmed correct — e.g. ITLC has 1,439 non-suspended users and
+  13,146 suspended (historical students who completed courses). The simple
+  mdl_user count returns 1,439 which matches the database ground truth.
+
+  The v2.5.2 change (joining user_enrolments) was incorrect and is reverted.
+  No DB schema changes — upgrade savepoint 2026042603 records the change.
+
+Version 2.5.2  (2026-04-27)
+------------------------------
+INTERMEDIATE: No schema changes. Superseded by v2.5.3.
+
+Version 2.3.3  (2026-04-01)
+------------------------------
+FIXED: Scheduled task "Attendance KPI check and escalation notifications" failing
+  with "Task failed" on all sites. Root cause was two unguarded exception paths:
+
+  1. Orphaned attendance records (course deleted but attendance row still in DB).
+     context_course::instance() and get_course() both throw a hard moodle_exception
+     when the course no longer exists. With no try-catch around the foreach loop,
+     the very first orphaned row killed the entire task and Moodle marked it failed.
+     Fix: added $DB->record_exists('course', ...) guard before each attendance;
+     orphaned rows are now skipped with a clear mtrace message.
+
+  2. message_send() throwing (e.g. message provider not flushed after upgrade).
+     Fix: wrapped message_send() in try/catch(\Throwable) so a bad send logs a
+     warning and continues rather than propagating back to the task runner.
+
+  3. Outer loop now wrapped in try/catch(\Throwable) as a belt-and-braces backstop
+     so any other unexpected exception is logged and the task continues processing
+     the remaining attendance records.
+
+  Task now prints a completion summary: "Checked: X, skipped/errored: Y".
+UPDATED: version.php — bumped to 2.3.3 (2026040101).
