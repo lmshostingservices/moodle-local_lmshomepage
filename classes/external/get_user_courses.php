@@ -1,4 +1,19 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * External function: local_lmshomepage_get_user_courses
  *
@@ -53,6 +68,9 @@
  * activity_pct = -1 means no completion tracking is enabled on the course
  *              (no activities have $cm->completion > COMPLETION_TRACKING_NONE).
  *              The portal treats -1 as 0 % for display.
+ * @package    local_lmshomepage
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_lmshomepage\external;
@@ -62,8 +80,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_user_courses extends \external_api {
-
-    public static function execute_parameters(): \external_function_parameters {
+    public static function execute_parameters (): \external_function_parameters {
         return new \external_function_parameters([
             'userid' => new \external_value(
                 PARAM_INT,
@@ -79,7 +96,7 @@ class get_user_courses extends \external_api {
      * @param  int   $userid  Moodle user ID.
      * @return array
      */
-    public static function execute(int $userid): array {
+    public static function execute (int $userid): array {
         global $DB;
 
         // ── 1. Enrolments — ALL records (active, suspended, expired) ────────
@@ -162,7 +179,7 @@ class get_user_courses extends \external_api {
         return $result;
     }
 
-    public static function execute_returns(): \external_multiple_structure {
+    public static function execute_returns (): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'courseid'     => new \external_value(PARAM_INT,  'Course ID'),

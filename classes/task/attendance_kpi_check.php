@@ -1,4 +1,19 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 namespace local_lmshomepage\task;
 
 defined('MOODLE_INTERNAL') || die();
@@ -31,14 +46,16 @@ defined('MOODLE_INTERNAL') || die();
  *   {organisation}      Organisation name from plugin settings
  *   {teacher_firstname} Teacher's first name (teacher body only)
  *   {teacher_fullname}  Teacher's full name (teacher body only)
+ * @package    local_lmshomepage
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class attendance_kpi_check extends \core\task\scheduled_task {
-
-    public function get_name(): string {
+    public function get_name (): string {
         return get_string('task_attendance_kpi_check', 'local_lmshomepage');
     }
 
-    public function execute(): void {
+    public function execute (): void {
         global $DB;
 
         if (!get_config('local_lmshomepage', 'attendance_reminders_enabled')) {
@@ -84,8 +101,8 @@ class attendance_kpi_check extends \core\task\scheduled_task {
 
     // ── Config loader ─────────────────────────────────────────────────────────
 
-    private function load_config(): array {
-        $g = function(string $key, $default) {
+    private function load_config (): array {
+        $g = function (string $key, $default) {
             $v = get_config('local_lmshomepage', $key);
             return ($v !== false && $v !== '') ? $v : $default;
         };
@@ -143,7 +160,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
 
     // ── Attendance check per activity ─────────────────────────────────────────
 
-    private function check_attendance(\stdClass $attendance, array $cfg): void {
+    private function check_attendance (\stdClass $attendance, array $cfg): void {
         global $DB;
 
         $context = \context_course::instance($attendance->course);
@@ -283,7 +300,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
      * Returns 'low', 'medium', or 'high'.
      * Note: uses the activity-specific $kpi_threshold for the top boundary.
      */
-    private function get_risk_key(int $pct, array $cfg, int $kpi_threshold): string {
+    private function get_risk_key (int $pct, array $cfg, int $kpi_threshold): string {
         if ($pct < $cfg['high_threshold']) {
             return 'high';
         }
@@ -295,7 +312,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
 
     // ── Attendance stats ──────────────────────────────────────────────────────
 
-    private function get_student_attendance_stats(int $attendanceid, int $userid): ?array {
+    private function get_student_attendance_stats (int $attendanceid, int $userid): ?array {
         global $DB;
 
         $session_ids = $DB->get_fieldset_select('attendance_sessions', 'id', 'attendanceid = ?', [$attendanceid]);
@@ -337,7 +354,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
 
     // ── Notification throttle ─────────────────────────────────────────────────
 
-    private function notification_sent_recently(int $userid, int $courseid, string $risk_level, int $days): bool {
+    private function notification_sent_recently (int $userid, int $courseid, string $risk_level, int $days): bool {
         global $DB;
         if ($days <= 0) {
             return false; // No throttle — always send.
@@ -350,7 +367,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
         );
     }
 
-    private function log_notification(array $data): void {
+    private function log_notification (array $data): void {
         global $DB;
         try {
             $DB->insert_record('local_lmshomepage_log', (object) $data);
@@ -360,7 +377,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
         }
     }
 
-    private function record_notification(int $userid, int $courseid, string $risk_level): void {
+    private function record_notification (int $userid, int $courseid, string $risk_level): void {
         global $DB;
         // Remove any stale record for this risk level, then insert fresh.
         $DB->delete_records('local_lmshomepage_reminders', ['userid' => $userid, 'courseid' => $courseid, 'risk_level' => $risk_level]);
@@ -374,7 +391,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
 
     // ── Message sending ───────────────────────────────────────────────────────
 
-    private function send_moodle_message(
+    private function send_moodle_message (
         \stdClass $from,
         \stdClass $to,
         string $subject,
@@ -408,7 +425,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
      * Send a plain-text email to an external address (e.g. admin CC).
      * Uses Moodle's email_to_user() with a fabricated user object.
      */
-    private function send_external_email(string $to_email, string $subject, string $body, string $reply_to = ''): void {
+    private function send_external_email (string $to_email, string $subject, string $body, string $reply_to = ''): void {
         // Clone the cached support-user object so we don't corrupt Moodle's internal
         // reference when overriding the email address for this specific recipient.
         $fake              = clone \core_user::get_support_user();
@@ -428,17 +445,17 @@ class attendance_kpi_check extends \core\task\scheduled_task {
 
     // ── Placeholder substitution ──────────────────────────────────────────────
 
-    private function fill(string $template, array $placeholders): string {
+    private function fill (string $template, array $placeholders): string {
         return str_replace(array_keys($placeholders), array_values($placeholders), $template);
     }
 
-    private function build_teacher_subject(string $risk_label, string $student_name, string $course_name): string {
+    private function build_teacher_subject (string $risk_label, string $student_name, string $course_name): string {
         return "[{$risk_label}] Attendance alert — {$student_name} in {$course_name}";
     }
 
     // ── Fallback default bodies (used if DB config is blank) ──────────────────
 
-    private function default_student_body(string $level): string {
+    private function default_student_body (string $level): string {
         $bodies = [
             'low'    => "Hi {firstname},\n\nYour attendance in {course} is {percentage}%, which is below the required {threshold}%.\n\nYou have attended {sessions_attended} of {sessions_total} sessions. Please attend upcoming sessions to stay on track.\n\nKind regards,\n{organisation}",
             'medium' => "Hi {firstname},\n\nIMPORTANT: Your attendance in {course} has dropped to {percentage}%, significantly below the required {threshold}%.\n\nYou have attended {sessions_attended} of {sessions_total} sessions. Please contact your trainer immediately and attend all remaining sessions.\n\nKind regards,\n{organisation}",
@@ -447,7 +464,7 @@ class attendance_kpi_check extends \core\task\scheduled_task {
         return $bodies[$level] ?? $bodies['low'];
     }
 
-    private function default_teacher_body(string $level): string {
+    private function default_teacher_body (string $level): string {
         $labels = ['low' => 'Low Risk', 'medium' => 'Medium Risk', 'high' => 'HIGH RISK'];
         $label  = $labels[$level] ?? 'At Risk';
         return "Hi {teacher_firstname},\n\n[{$label}] {fullname} has an attendance rate of {percentage}% in {course} (required: {threshold}%). Sessions attended: {sessions_attended} of {sessions_total}.\n\nThis notification was sent automatically by the LMS attendance monitoring system.";

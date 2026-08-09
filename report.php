@@ -1,11 +1,30 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Attendance notification log — admin report (v2.2 — world-class redesign).
  * Site Administration → Reports → Attendance Notification Log.
+ * @package    local_lmshomepage
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
+// require_login() is called implicitly by admin_externalpage_setup below.
 admin_externalpage_setup('local_lmshomepage_report');
 
 global $DB, $OUTPUT, $PAGE;
@@ -147,17 +166,17 @@ $PAGE->set_heading('Attendance Notification Log');
 echo $OUTPUT->header();
 
 // ── Inline helpers ────────────────────────────────────────────────────────────
-$risk_badge = function(string $level): string {
+$risk_badge = function (string $level): string {
     $m = ['low'=>['🟡 Low Risk','#854d0e','#fefce8','#fde047'],'medium'=>['🟠 Medium Risk','#9a3412','#fff7ed','#fb923c'],'high'=>['🔴 High Risk','#7f1d1d','#fef2f2','#f87171']];
     [$l,$c,$bg,$bd] = $m[$level] ?? ['Unknown','#374151','#f3f4f6','#d1d5db'];
     return "<span style='display:inline-flex;align-items:center;gap:4px;padding:3px 11px;border-radius:999px;background:{$bg};color:{$c};border:1px solid {$bd};font-size:.75rem;font-weight:700;white-space:nowrap;'>{$l}</span>";
 };
-$recip_badge = function(string $type): string {
+$recip_badge = function (string $type): string {
     $m = ['student'=>['Student','#1e3a8a','#dbeafe','#93c5fd'],'teacher'=>['Trainer','#064e3b','#d1fae5','#6ee7b7'],'admin'=>['Admin','#4c1d95','#ede9fe','#a78bfa']];
     [$l,$c,$bg,$bd] = $m[$type] ?? [ucfirst($type),'#374151','#f3f4f6','#d1d5db'];
     return "<span style='display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:{$bg};color:{$c};border:1px solid {$bd};font-size:.73rem;font-weight:700;white-space:nowrap;'>{$l}</span>";
 };
-$pct_bar = function(int $pct): string {
+$pct_bar = function (int $pct): string {
     $w = min(100, max(0, $pct));
     $c = $pct < 60 ? '#ef4444' : ($pct < 70 ? '#f97316' : '#f59e0b');
     return "<div style='display:flex;align-items:center;gap:7px;min-width:100px;'>
@@ -167,7 +186,7 @@ $pct_bar = function(int $pct): string {
       <span style='font-size:.8rem;font-weight:800;color:{$c};min-width:34px;text-align:right;'>{$pct}%</span>
     </div>";
 };
-$sort_th = function(string $col, string $label) use ($f_sort, $f_dir, $sort_url): string {
+$sort_th = function (string $col, string $label) use ($f_sort, $f_dir, $sort_url): string {
     $arrow = $f_sort === $col ? ($f_dir === 'DESC' ? ' ↓' : ' ↑') : '';
     return '<a href="'.$sort_url($col).'" style="color:inherit;text-decoration:none;display:flex;align-items:center;gap:4px;white-space:nowrap;">'
          .htmlspecialchars($label,ENT_QUOTES).'<span style="opacity:.5;font-size:.7em;">'.$arrow.'</span></a>';
@@ -647,7 +666,7 @@ $filter_base_no_risk = ['sort'=>$f_sort,'dir'=>$f_dir,'date_from'=>$f_date_from,
 </div><!-- .lrw -->
 
 <script>
-function toggleAdv(btn) {
+function toggleAdv (btn) {
   var body    = document.getElementById('advBody');
   var icon    = document.getElementById('advIcon');
   var open    = body.classList.toggle('hidden');
@@ -656,7 +675,7 @@ function toggleAdv(btn) {
 }
 // Auto-open if advanced filters are active
 <?php if ($f_courseid > 0 || $f_recip_type !== 'all' || $f_student !== '' || $active_preset === 'custom'): ?>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   var btn = document.querySelector('.lr-adv-toggle');
   if (btn) toggleAdv(btn);
 });
