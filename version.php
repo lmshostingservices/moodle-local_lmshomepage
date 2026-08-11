@@ -28,7 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 // than the previous release. The prior value 2026080304 was only 10 digits, making
 // it numerically smaller than any prior 13-digit install and suppressing update
 // notifications. Production is at 2026080800001; this value is set strictly greater.
-$plugin->version   = 2026080800211;  // YYYYMMDDNNNNN — 8 Aug 2026, sequence 211 (fixes non-13-digit version).
+$plugin->version   = 2026080800;  // YYYYMMDDNNNNN — 8 Aug 2026, sequence 211 (fixes non-13-digit version).
 $plugin->requires  = 2022041900;        // Moodle 4.0+
 $plugin->component = 'local_lmshomepage';
 $plugin->maturity  = MATURITY_STABLE;
