@@ -42,8 +42,9 @@
  *   grade_percent, competency_status,   ← C / NYC / RPL / CT / ''
  *   completion_status,                  ← Complete / Incomplete / Not attempted
  *   trainer_id, trainer_name, trainer_email
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -54,7 +55,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_vet_grade_report extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'course_id'      => new \external_value(PARAM_INT,  'Filter to a specific course ID. 0 = all.', VALUE_DEFAULT, 0),
             'student_userid' => new \external_value(PARAM_INT,  'Filter to a specific student user ID. 0 = all.', VALUE_DEFAULT, 0),
@@ -66,7 +67,7 @@ class get_vet_grade_report extends \external_api {
         ]);
     }
 
-    public static function execute (
+    public static function execute(
         int $course_id      = 0,
         int $student_userid = 0,
         int $group_id       = 0,
@@ -338,7 +339,7 @@ class get_vet_grade_report extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'            => new \external_value(PARAM_INT,   'Student user ID'),

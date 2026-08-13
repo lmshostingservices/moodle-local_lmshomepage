@@ -25,8 +25,9 @@
  *   3. Paste the token into the plugin settings (API token field)
  *
  * No manual function-by-function setup required.
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();

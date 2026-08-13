@@ -47,8 +47,9 @@
  *   wsfunction=local_lmshomepage_get_trainer_allocations
  *   cohort_id=0        (int, optional — 0 = all cohorts)
  *   trainer_userid=0   (int, optional — 0 = all; -1 = unallocated only)
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -59,7 +60,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_trainer_allocations extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'cohort_id' => new \external_value(
                 PARAM_INT,
@@ -76,7 +77,7 @@ class get_trainer_allocations extends \external_api {
         ]);
     }
 
-    public static function execute (int $cohort_id = 0, int $trainer_userid = 0): array {
+    public static function execute(int $cohort_id = 0, int $trainer_userid = 0): array {
         global $DB;
 
         $params = ['now_ts' => time()];
@@ -200,7 +201,7 @@ class get_trainer_allocations extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'       => new \external_value(PARAM_INT,  'Student user ID'),

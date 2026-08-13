@@ -34,8 +34,9 @@
  *     },
  *     ...
  *   ]
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -46,7 +47,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_admin_emails extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([]);
     }
 
@@ -55,7 +56,7 @@ class get_admin_emails extends \external_api {
      *
      * @return array
      */
-    public static function execute (): array {
+    public static function execute(): array {
         global $CFG, $DB;
 
         // Moodle stores site admin IDs as a comma-separated string in mdl_config.
@@ -91,7 +92,7 @@ class get_admin_emails extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'   => new \external_value(PARAM_INT,  'Administrator user ID'),

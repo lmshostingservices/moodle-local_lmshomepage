@@ -39,8 +39,9 @@
  *
  * Returns:
  *   { "id": 42, "success": true }
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -51,7 +52,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class log_commhub extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'studentid'       => new \external_value(PARAM_INT,  'Student user ID'),
             'student_name'    => new \external_value(PARAM_TEXT, 'Student full name'),
@@ -63,7 +64,11 @@ class log_commhub extends \external_api {
             'assessment_name' => new \external_value(PARAM_TEXT, 'Assessment/activity name',              VALUE_DEFAULT, ''),
             'channel'         => new \external_value(PARAM_TEXT, 'Delivery channel: email, sms, or moodle'),
             'message_subject' => new \external_value(PARAM_TEXT, 'Message subject line'),
-            'message_body'    => new \external_value(PARAM_TEXT, 'Full message body'),
+            // PARAM_RAW (not PARAM_TEXT) so HTML formatting in the email body is preserved
+            // in the CommHub record. PARAM_TEXT stripped all tags, which is why every logged
+            // communication was stored as plain text. The value is sanitised with clean_text()
+            // before storage (see execute()) to keep formatting while removing unsafe markup.
+            'message_body'    => new \external_value(PARAM_RAW, 'Full message body (HTML preserved)'),
             'status'          => new \external_value(PARAM_TEXT, 'Delivery status: sent, failed, or pending', VALUE_DEFAULT, 'sent'),
         ]);
     }
@@ -85,7 +90,7 @@ class log_commhub extends \external_api {
      * @param string $status
      * @return array { id, success }
      */
-    public static function execute (
+    public static function execute(
         int    $studentid,
         string $student_name,
         string $student_email,
@@ -125,7 +130,9 @@ class log_commhub extends \external_api {
             'assessment_name' => $assessment_name,
             'channel'         => $channel,
             'message_subject' => $message_subject,
-            'message_body'    => $message_body,
+            // Sanitise the HTML body: strips scripts/unsafe markup while preserving
+            // structural formatting (paragraphs, lists, tables, links, bold, etc.).
+            'message_body'    => clean_text($message_body, FORMAT_HTML),
             'status'          => $status,
         ];
 
@@ -137,7 +144,7 @@ class log_commhub extends \external_api {
         }
     }
 
-    public static function execute_returns (): \external_single_structure {
+    public static function execute_returns(): \external_single_structure {
         return new \external_single_structure([
             'id'      => new \external_value(PARAM_INT,  'ID of the inserted commhub record (0 on failure)'),
             'success' => new \external_value(PARAM_BOOL, 'true if the record was inserted successfully'),

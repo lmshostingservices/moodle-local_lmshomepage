@@ -24,8 +24,9 @@
  * If a DB query fails, the function returns a single sentinel row where
  * fullname = "FAIL:<STEP>:<error>" so the calling server can read the
  * failing step without needing Moodle developer debug mode enabled.
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -37,7 +38,7 @@ require_once($CFG->libdir . '/externallib.php');
 
 class get_completion_report extends \external_api {
     /** Build a sentinel error row visible in the WS response without debug mode. */
-    private static function err (string $step, string $msg): array {
+    private static function err(string $step, string $msg): array {
         return [[
             'userid'                        => -1,
             'fullname'                      => 'FAIL:' . $step . ':' . substr($msg, 0, 250),
@@ -52,7 +53,7 @@ class get_completion_report extends \external_api {
         ]];
     }
 
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'courseid' => new \external_value(PARAM_INT, 'Course ID', VALUE_REQUIRED),
             'group_id' => new \external_value(PARAM_INT, 'Group filter (0=all)', VALUE_DEFAULT, 0),
@@ -60,7 +61,7 @@ class get_completion_report extends \external_api {
         ]);
     }
 
-    public static function execute (int $courseid, int $group_id = 0, int $trainer_userid = 0): array {
+    public static function execute(int $courseid, int $group_id = 0, int $trainer_userid = 0): array {
         global $DB;
 
         if ($courseid <= 1) {
@@ -576,7 +577,7 @@ class get_completion_report extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'       => new \external_value(PARAM_INT,  'Student user ID'),

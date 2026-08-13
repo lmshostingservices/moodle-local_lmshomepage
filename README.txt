@@ -1,6 +1,6 @@
 LMS Home Page — Moodle Plugin
 ==============================
-Version: 2.11.38  (version code 2026080304)
+Version: 2.11.37  (version code 2026080303)
 Component: local_lmshomepage
 Requires: Moodle 4.0+ (also supports Moodle 5+)
 

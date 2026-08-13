@@ -68,8 +68,9 @@
  * activity_pct = -1 means no completion tracking is enabled on the course
  *              (no activities have $cm->completion > COMPLETION_TRACKING_NONE).
  *              The portal treats -1 as 0 % for display.
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -80,7 +81,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_user_courses extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'userid' => new \external_value(
                 PARAM_INT,
@@ -96,7 +97,7 @@ class get_user_courses extends \external_api {
      * @param  int   $userid  Moodle user ID.
      * @return array
      */
-    public static function execute (int $userid): array {
+    public static function execute(int $userid): array {
         global $DB;
 
         // ── 1. Enrolments — ALL records (active, suspended, expired) ────────
@@ -179,7 +180,7 @@ class get_user_courses extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'courseid'     => new \external_value(PARAM_INT,  'Course ID'),

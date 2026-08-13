@@ -22,8 +22,9 @@
  * lib.php callback has been removed to avoid the Moodle 4.3+ deprecation
  * notice from process_legacy_callbacks(); <head> injection is handled
  * exclusively by the before_standard_head_html_generation hook below.
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();

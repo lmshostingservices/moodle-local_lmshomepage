@@ -24,8 +24,9 @@
  *
  * Administrators can adjust the schedule under:
  *   Site Administration → Server → Scheduled tasks
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();

@@ -41,8 +41,9 @@
  * Usage (REST):
  *   wsfunction=local_lmshomepage_get_trainers
  *   course_id=0   (kept for API compatibility — not used)
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -53,7 +54,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_trainers extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'course_id' => new \external_value(
                 PARAM_INT,
@@ -64,7 +65,7 @@ class get_trainers extends \external_api {
         ]);
     }
 
-    public static function execute (int $course_id = 0): array {
+    public static function execute(int $course_id = 0): array {
         global $DB;
 
         $now = time();
@@ -203,7 +204,7 @@ class get_trainers extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'trainerid'    => new \external_value(PARAM_INT,  'Trainer user ID'),
