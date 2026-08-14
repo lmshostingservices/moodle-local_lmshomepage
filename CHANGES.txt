@@ -1,5 +1,12 @@
 == LMS Home Page Plugin — Changelog ==
 
+Version 2.11.38  (2026-08-03)
+------------------------------
+CHANGED: version bump only (code 2026080303 → 2026080304). Forces Moodle to
+  re-detect and run the upgrade. Identical code to 2.11.37 — no functional or
+  schema changes.
+No schema changes.
+
 Version 2.11.37  (2026-08-03)
 ------------------------------
 CHANGED: version bump only (code 2026080302 → 2026080303). Forces Moodle to

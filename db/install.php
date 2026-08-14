@@ -21,14 +21,13 @@
  * Grants every capability the LMS Dashboard webservice token user needs
  * to the Manager role and any webservice-named roles so admins do not
  * have to add them manually.
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
 
-function xmldb_local_lmshomepage_install(): bool {
+function xmldb_local_lmshomepage_install (): bool {
     local_lmshomepage_grant_required_capabilities();
     return true;
 }
@@ -46,7 +45,7 @@ function xmldb_local_lmshomepage_install(): bool {
  *
  * Called from both install.php (first install) and upgrade.php (upgrades).
  */
-function local_lmshomepage_grant_required_capabilities(): void {
+function local_lmshomepage_grant_required_capabilities (): void {
     global $DB;
 
     $systemcontext = context_system::instance();

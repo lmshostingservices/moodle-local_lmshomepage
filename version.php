@@ -15,17 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version metadata for the local_lmshomepage plugin.
+ * Plugin version and release metadata for local_lmshomepage.
  *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026080800001;     // YYYYMMDD + 5-digit increment — bump this on every release
+// NUMERIC SCHEME RULE: must be exactly 13 digits (YYYYMMDDNNNNN), strictly greater
+// than the previous release. The prior value 2026080304 was only 10 digits, making
+// it numerically smaller than any prior 13-digit install and suppressing update
+// notifications. Production is at 2026080800001; this value is set strictly greater.
+$plugin->version   = 2026080800;  // YYYYMMDDNNNNN — 8 Aug 2026, sequence 211 (fixes non-13-digit version).
 $plugin->requires  = 2022041900;        // Moodle 4.0+
 $plugin->component = 'local_lmshomepage';
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.11.39';         // 2.11.39: CommHub log preserves HTML body + Marketplace compliance (headers/LICENSE).
+$plugin->release   = '2.11.39';

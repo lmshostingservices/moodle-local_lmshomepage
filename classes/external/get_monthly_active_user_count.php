@@ -37,9 +37,8 @@
  *
  * Returns:
  *   { "count": 299, "since": 1713744000 }
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -50,7 +49,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_monthly_active_user_count extends \external_api {
-    public static function execute_parameters(): \external_function_parameters {
+    public static function execute_parameters (): \external_function_parameters {
         return new \external_function_parameters([
             'days' => new \external_value(
                 PARAM_INT,
@@ -74,7 +73,7 @@ class get_monthly_active_user_count extends \external_api {
         ]);
     }
 
-    public static function execute(int $days = 30, int $since_timestamp = 0, int $student_only = 0): array {
+    public static function execute (int $days = 30, int $since_timestamp = 0, int $student_only = 0): array {
         global $DB;
 
         // Determine the window start
@@ -136,7 +135,7 @@ class get_monthly_active_user_count extends \external_api {
         ];
     }
 
-    public static function execute_returns(): \external_single_structure {
+    public static function execute_returns (): \external_single_structure {
         return new \external_single_structure([
             'count' => new \external_value(PARAM_INT, 'Number of distinct active users in the window'),
             'since' => new \external_value(PARAM_INT, 'Unix timestamp marking the start of the window'),

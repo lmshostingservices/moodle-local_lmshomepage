@@ -17,20 +17,15 @@
 /**
  * Attendance notification log — admin report (v2.2 — world-class redesign).
  * Site Administration → Reports → Attendance Notification Log.
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
+// require_login() is called implicitly by admin_externalpage_setup below.
 admin_externalpage_setup('local_lmshomepage_report');
-
-// Explicit access control (admin_externalpage_setup() already enforces this, but
-// make the requirement clear and self-contained on the page).
-require_login();
-require_capability('moodle/site:config', context_system::instance());
 
 global $DB, $OUTPUT, $PAGE;
 
@@ -671,7 +666,7 @@ $filter_base_no_risk = ['sort'=>$f_sort,'dir'=>$f_dir,'date_from'=>$f_date_from,
 </div><!-- .lrw -->
 
 <script>
-function toggleAdv(btn) {
+function toggleAdv (btn) {
   var body    = document.getElementById('advBody');
   var icon    = document.getElementById('advIcon');
   var open    = body.classList.toggle('hidden');

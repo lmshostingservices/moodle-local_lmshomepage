@@ -33,9 +33,8 @@
  *
  * Returns:
  *   [ { "courseid": 42, "completed": 18 }, ... ]
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -46,7 +45,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_course_completion_counts extends \external_api {
-    public static function execute_parameters(): \external_function_parameters {
+    public static function execute_parameters (): \external_function_parameters {
         return new \external_function_parameters([
             'courseids' => new \external_value(
                 PARAM_TEXT,
@@ -63,7 +62,7 @@ class get_course_completion_counts extends \external_api {
         ]);
     }
 
-    public static function execute(string $courseids = '', int $since_timestamp = 0): array {
+    public static function execute (string $courseids = '', int $since_timestamp = 0): array {
         global $DB;
 
         $params = [];
@@ -112,7 +111,7 @@ class get_course_completion_counts extends \external_api {
         return $result;
     }
 
-    public static function execute_returns(): \external_multiple_structure {
+    public static function execute_returns (): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'courseid'  => new \external_value(PARAM_INT, 'Course ID'),

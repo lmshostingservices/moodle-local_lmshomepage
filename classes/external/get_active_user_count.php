@@ -31,9 +31,8 @@
  *
  * Returns:
  *   { "count": 1439 }
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -44,7 +43,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_active_user_count extends \external_api {
-    public static function execute_parameters(): \external_function_parameters {
+    public static function execute_parameters (): \external_function_parameters {
         return new \external_function_parameters([]);
     }
 
@@ -54,7 +53,7 @@ class get_active_user_count extends \external_api {
      *
      * @return array { count: int }
      */
-    public static function execute(): array {
+    public static function execute (): array {
         global $DB;
 
         $count = $DB->count_records_select(
@@ -65,7 +64,7 @@ class get_active_user_count extends \external_api {
         return ['count' => (int) $count];
     }
 
-    public static function execute_returns(): \external_single_structure {
+    public static function execute_returns (): \external_single_structure {
         return new \external_single_structure([
             'count' => new \external_value(PARAM_INT, 'Number of non-suspended, non-deleted user accounts'),
         ]);

@@ -24,9 +24,8 @@
  * NOTE: MESSAGE_OUTPUT_EMAIL / MESSAGE_OUTPUT_POPUP constants were removed
  * in Moodle 4.x — do NOT reference them here.  Moodle manages output
  * defaults internally; we simply declare the provider name.
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();

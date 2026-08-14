@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Part of the local_lmshomepage plugin.
+ * Language strings for local_lmshomepage.
  *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -167,7 +167,7 @@ This notification was sent automatically by the LMS attendance monitoring system
 $string['heading_high_risk']      = '🔴  Stage 3 — High Risk';
 $string['heading_high_risk_desc'] = 'Sent when a student\'s attendance falls below the High Risk threshold (e.g. below 60% with default settings). An urgent escalation message requiring immediate action. Teachers and optionally admin/management are notified.';
 
-$string['high_risk_subject_default'] = 'Urgent: Critical attendance level — {course}';
+$string['high_risk_subject_default'] = 'URGENT: Critical attendance level — {course}';
 
 $string['high_risk_student_body_default'] = 'Hi {firstname},
 
@@ -188,7 +188,7 @@ Kind regards,
 
 $string['high_risk_teacher_body_default'] = 'Hi {teacher_firstname},
 
-Urgent: {fullname} has reached a critical attendance level of {percentage}% in {course} (required: {threshold}%).
+URGENT: {fullname} has reached a critical attendance level of {percentage}% in {course} (required: {threshold}%).
 
 Sessions attended: {sessions_attended} of {sessions_total}
 

@@ -16,14 +16,13 @@
 
 /**
  * Upgrade script for local_lmshomepage.
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
 
-function xmldb_local_lmshomepage_upgrade(int $oldversion): bool {
+function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
     global $CFG, $DB;
     $dbman = $DB->get_manager();
 
@@ -1730,6 +1729,16 @@ function xmldb_local_lmshomepage_upgrade(int $oldversion): bool {
     //
     if ($oldversion < 2026080303) {
         upgrade_plugin_savepoint(true, 2026080303, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.38 (2026080304) ────────────────────────────────────────────────
+    //
+    // Version bump only — no code or schema changes. Forces Moodle to re-run the
+    // plugin upgrade so the completion-report changes are picked up. Identical
+    // code to v2.11.36/37.
+    //
+    if ($oldversion < 2026080304) {
+        upgrade_plugin_savepoint(true, 2026080304, 'local', 'lmshomepage');
     }
 
     return true;

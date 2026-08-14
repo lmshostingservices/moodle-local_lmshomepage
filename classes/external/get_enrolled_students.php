@@ -52,9 +52,8 @@
  *     },
  *     ...
  *   ]
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -65,7 +64,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_enrolled_students extends \external_api {
-    public static function execute_parameters(): \external_function_parameters {
+    public static function execute_parameters (): \external_function_parameters {
         return new \external_function_parameters([
             'courseids' => new \external_value(
                 PARAM_TEXT,
@@ -89,7 +88,7 @@ class get_enrolled_students extends \external_api {
      * @param string $roleshortname Role to filter on (empty = all roles).
      * @return array
      */
-    public static function execute(string $courseids = '', string $roleshortname = 'student'): array {
+    public static function execute (string $courseids = '', string $roleshortname = 'student'): array {
         global $DB;
 
         // ── Build course ID filter ────────────────────────────────────────
@@ -172,7 +171,7 @@ class get_enrolled_students extends \external_api {
         return $result;
     }
 
-    public static function execute_returns(): \external_multiple_structure {
+    public static function execute_returns (): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'courseid'         => new \external_value(PARAM_INT,    'Course ID'),

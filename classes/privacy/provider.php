@@ -14,14 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Part of the local_lmshomepage plugin.
- *
- * @package    local_lmshomepage
- * @copyright  2026 College Australia
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 namespace local_lmshomepage\privacy;
 
 use core_privacy\local\metadata\null_provider;
@@ -35,6 +27,9 @@ defined('MOODLE_INTERNAL') || die();
  * and passed as a data-attribute to the browser widget solely for the
  * purpose of rendering a personalised greeting.  It is never transmitted
  * to any external server and is never persisted.
+ * @package    local_lmshomepage
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements null_provider {
     /**
@@ -42,7 +37,7 @@ class provider implements null_provider {
      *
      * @return string Language string key.
      */
-    public static function get_reason(): string {
+    public static function get_reason (): string {
         return 'privacy:metadata';
     }
 }

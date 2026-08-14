@@ -25,16 +25,15 @@
  *
  * Parameters:
  *   courseids=42,57,99  (optional — comma-separated IDs; omit for all visible courses)
- *
  * @package    local_lmshomepage
- * @copyright  2026 College Australia
+ * @copyright  2024 LMS Labs <support@lmslabs.com.au>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 namespace local_lmshomepage\external;
 defined('MOODLE_INTERNAL') || die();
 
 class get_slim_courses extends \core_external\external_api {
-    public static function execute_parameters(): \external_function_parameters {
+    public static function execute_parameters (): \external_function_parameters {
         return new \external_function_parameters([
             'courseids' => new \external_value(
                 PARAM_TEXT,
@@ -51,7 +50,7 @@ class get_slim_courses extends \core_external\external_api {
      * @param string $courseids  Comma-separated course IDs (empty = all).
      * @return array
      */
-    public static function execute(string $courseids = ''): array {
+    public static function execute (string $courseids = ''): array {
         global $DB;
 
         $params     = [];
@@ -96,7 +95,7 @@ class get_slim_courses extends \core_external\external_api {
         return $result;
     }
 
-    public static function execute_returns(): \external_multiple_structure {
+    public static function execute_returns (): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'id'          => new \external_value(PARAM_INT,  'Course ID'),
