@@ -18,21 +18,21 @@
  * External function: local_lmshomepage_get_trainer_allocations
  *
  * Returns ONE ROW PER STUDENT showing their allocated trainer, sourced
- * from the 'wombat_trainer' custom profile field ("Your Trainer Is").
+ * from the 'trainername' custom profile field ("Your Trainer Is").
  *
  * REWRITE (v2.11.25) — previous approach and why it was wrong:
  *   The previous version used Moodle group co-membership to infer trainer
  *   allocation.  This had two problems:
  *     1. DUPLICATES: a student in N groups appeared N times in the report.
  *     2. WRONG SOURCE: the client's confirmed source of truth for trainer
- *        allocation is the 'wombat_trainer' profile field.  Group membership
+ *        allocation is the 'trainername' profile field.  Group membership
  *        does not reliably identify the responsible trainer (students may be
  *        in admin/cohort groups, multiple trainers may be in the same group,
  *        etc.).
  *
  * New approach:
  *   1. One row per active student (deduplicated by userid).
- *   2. Trainer is read from user_info_data where fieldid = wombat_trainer field.
+ *   2. Trainer is read from user_info_data where fieldid = trainername field.
  *   3. The stored string (trainer full name) is matched against mdl_user to
  *      resolve the trainer user ID — identical to get_completed_units.php.
  *   4. Falls back gracefully (trainer_id=0, trainer_name='') when the field
@@ -47,8 +47,9 @@
  *   wsfunction=local_lmshomepage_get_trainer_allocations
  *   cohort_id=0        (int, optional — 0 = all cohorts)
  *   trainer_userid=0   (int, optional — 0 = all; -1 = unallocated only)
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -59,7 +60,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_trainer_allocations extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'cohort_id' => new \external_value(
                 PARAM_INT,
@@ -76,16 +77,24 @@ class get_trainer_allocations extends \external_api {
         ]);
     }
 
-    public static function execute (int $cohort_id = 0, int $trainer_userid = 0): array {
+    public static function execute(int $cohort_id = 0, int $trainer_userid = 0): array {
         global $DB;
+
+        self::validate_context(\context_system::instance());
+        self::validate_parameters(self::execute_parameters(), [
+            'cohort_id'      => $cohort_id,
+            'trainer_userid' => $trainer_userid,
+        ]);
 
         $params = ['now_ts' => time()];
 
-        // ── Resolve wombat_trainer profile field ID ───────────────────────────
+        // ── Resolve trainername profile field ID ───────────────────────────
         // Falls back to -1 when the field doesn't exist so no uid_tr rows
         // match (trainer stays NULL / unallocated) without any SQL error.
-        $trainerFieldId = (int) $DB->get_field('user_info_field', 'id', ['shortname' => 'wombat_trainer']);
-        $params['tf_id'] = $trainerFieldId > 0 ? $trainerFieldId : -1;
+        $trainerFieldId = (int) $DB->get_field('user_info_field', 'id', ['shortname' => 'trainername']);
+        $params['tf_id']     = $trainerFieldId > 0 ? $trainerFieldId : -1;
+        // Separate param copy for the group-dedup NOT EXISTS subquery.
+        $params['tf_id_grp'] = $trainerFieldId > 0 ? $trainerFieldId : -1;
 
         // ── Optional filters ──────────────────────────────────────────────────
         $cohortJoin  = '';
@@ -96,7 +105,8 @@ class get_trainer_allocations extends \external_api {
 
         $trainerWhere = '';
         if ($trainer_userid === -1) {
-            $trainerWhere = "AND trainer.id IS NULL";
+            // "Unallocated" = no trainer label stored (not "no matched user account").
+            $trainerWhere = "AND (uid_tr.data IS NULL OR TRIM(uid_tr.data) = '')";
         } elseif ($trainer_userid > 0) {
             $params['trainer_userid'] = $trainer_userid;
             $trainerWhere = "AND trainer.id = :trainer_userid";
@@ -113,19 +123,28 @@ class get_trainer_allocations extends \external_api {
         // Step 2 (coh_dedup): alphabetically-first cohort name per student to
         //   avoid row explosion when a student belongs to multiple cohorts.
         //
-        // Step 3 (wombat_trainer profile field): read the stored trainer name
+        // Step 3 (trainername profile field): read the stored trainer name
         //   from user_info_data, then match it against mdl_user to resolve the
         //   trainer user record.
         //
+
+        // ── DB-portable string concatenation helpers ──────────────────────────
+        $sql_fullname           = $DB->sql_concat('u.firstname', "' '", 'u.lastname');
+        $sql_trainer_name_match = 'LOWER(TRIM(' . $DB->sql_concat('trainer.firstname', "' '", 'trainer.lastname') . '))';
+
         $sql = "
             SELECT
                 u.id                                                        AS userid,
-                CONCAT(u.firstname, ' ', u.lastname)                       AS fullname,
+                {$sql_fullname}                                             AS fullname,
                 u.email,
                 COALESCE(coh_dedup.cohort_name, '')                        AS cohort_name,
+                COALESCE(grp_dedup.group_name, '')                         AS group_name,
                 COALESCE(enrol_data.last_access, 0)                        AS last_access,
                 COALESCE(trainer.id, 0)                                    AS trainer_id,
-                COALESCE(CONCAT(trainer.firstname, ' ', trainer.lastname), '') AS trainer_name
+                -- Display the raw trainer label (e.g. Mel, Steph). The stored values are
+                -- usually first names, so the full-name user match below often resolves no
+                -- user — but the label itself is the allocation the RTO uses.
+                COALESCE(NULLIF(TRIM(uid_tr.data), ''), '')                AS trainer_name
 
             FROM {user} u
 
@@ -160,14 +179,38 @@ class get_trainer_allocations extends \external_api {
                 GROUP BY cm_mem.userid
             ) coh_dedup ON coh_dedup.userid = u.id
 
-            -- ── 3. Trainer from wombat_trainer profile field ──────────────────
+            -- ── 3. Group: alphabetically-first group name per student ─────────
+            --  Restrict to visible courses (same filter as the enrolment subquery)
+            --  so groups in archived/hidden courses don't pollute the result.
+            --  Exclude groups whose name matches any trainername profile field value —
+            --  those are trainer-allocation pseudo-groups (e.g. \"Steph\", \"Mel\"), not
+            --  real student groups.
+            LEFT JOIN (
+                SELECT   gm.userid,
+                         MIN(g.name) AS group_name
+                FROM     {groups_members} gm
+                JOIN     {groups} g ON g.id = gm.groupid
+                JOIN     {course} gc ON gc.id = g.courseid
+                                    AND gc.id != 1
+                                    AND gc.visible = 1
+                WHERE    NOT EXISTS (
+                    SELECT 1
+                    FROM   {user_info_data} tf_grp
+                    WHERE  tf_grp.fieldid = :tf_id_grp
+                      AND  TRIM(tf_grp.data) != ''
+                      AND  LOWER(TRIM(tf_grp.data)) = LOWER(TRIM(g.name))
+                )
+                GROUP BY gm.userid
+            ) grp_dedup ON grp_dedup.userid = u.id
+
+            -- ── 4. Trainer from trainername profile field ──────────────────
             LEFT JOIN {user_info_data} uid_tr
                 ON uid_tr.userid  = u.id
                AND uid_tr.fieldid = :tf_id
             LEFT JOIN {user} trainer
                 ON  trainer.deleted   = 0
                 AND trainer.suspended = 0
-                AND LOWER(TRIM(CONCAT(trainer.firstname, ' ', trainer.lastname)))
+                AND {$sql_trainer_name_match}
                   = LOWER(TRIM(uid_tr.data))
 
             $cohortJoin
@@ -190,7 +233,7 @@ class get_trainer_allocations extends \external_api {
                 'fullname'     => (string) $row->fullname,
                 'email'        => (string) $row->email,
                 'cohort_name'  => (string) $row->cohort_name,
-                'group_name'   => '',   // kept for API compatibility; no longer used
+                'group_name'   => (string) $row->group_name,
                 'last_access'  => (int)    $row->last_access,
                 'trainer_id'   => (int)    $row->trainer_id,
                 'trainer_name' => (string) $row->trainer_name,
@@ -200,16 +243,16 @@ class get_trainer_allocations extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'       => new \external_value(PARAM_INT,  'Student user ID'),
                 'fullname'     => new \external_value(PARAM_TEXT, 'Student full name'),
                 'email'        => new \external_value(PARAM_TEXT, 'Student email address'),
                 'cohort_name'  => new \external_value(PARAM_TEXT, 'Primary cohort name (alphabetically first)'),
-                'group_name'   => new \external_value(PARAM_TEXT, 'Kept for API compatibility — always empty string in v2.11.25+'),
+                'group_name'   => new \external_value(PARAM_TEXT, 'Alphabetically-first Moodle group name the student belongs to (empty if none)'),
                 'last_access'  => new \external_value(PARAM_INT,  'Unix timestamp of last access across all enrolled courses (0 = never)'),
-                'trainer_id'   => new \external_value(PARAM_INT,  'Allocated trainer user ID from wombat_trainer profile field (0 = unallocated)'),
+                'trainer_id'   => new \external_value(PARAM_INT,  'Allocated trainer user ID from trainername profile field (0 = unallocated)'),
                 'trainer_name' => new \external_value(PARAM_TEXT, 'Allocated trainer full name (empty = unallocated)'),
             ])
         );

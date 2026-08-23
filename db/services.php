@@ -25,8 +25,9 @@
  *   3. Paste the token into the plugin settings (API token field)
  *
  * No manual function-by-function setup required.
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
@@ -99,7 +100,7 @@ $functions = [
 
     // ── 5. Student inactivity ─────────────────────────────────────────────────
     // Returns students who have not accessed any course for N or more days.
-    // Joins the wombat_trainer custom profile field for trainer attribution.
+    // Joins the trainername custom profile field for trainer attribution.
     'local_lmshomepage_get_student_inactivity' => [
         'classname'     => \local_lmshomepage\external\get_student_inactivity::class,
         'methodname'    => 'execute',
@@ -183,13 +184,13 @@ $functions = [
     ],
 
     // ── 9. Trainer allocations ────────────────────────────────────────────────
-    // Returns all enrolled students with their wombat_trainer profile field
+    // Returns all enrolled students with their trainername profile field
     // resolved to a trainer name. Unallocated students are included with
     // trainer_id = 0.
     'local_lmshomepage_get_trainer_allocations' => [
         'classname'     => \local_lmshomepage\external\get_trainer_allocations::class,
         'methodname'    => 'execute',
-        'description'   => 'Return student-to-trainer allocation from wombat_trainer custom profile field.',
+        'description'   => 'Return student-to-trainer allocation from trainername custom profile field.',
         'type'          => 'read',
         'loginrequired' => false,
         'ajax'          => false,
@@ -212,12 +213,12 @@ $functions = [
 
     // ── 11. Get trainers ──────────────────────────────────────────────────────
     // Returns all editingteacher/teacher users with their allocated student
-    // count from the wombat_trainer profile field.
+    // count from the trainername profile field.
     // Used by M8 Day 15 and M9 automation to send per-trainer reports.
     'local_lmshomepage_get_trainers' => [
         'classname'     => \local_lmshomepage\external\get_trainers::class,
         'methodname'    => 'execute',
-        'description'   => 'Return all trainers with email and student count from wombat_trainer profile field.',
+        'description'   => 'Return all trainers with email and student count from trainername profile field.',
         'type'          => 'read',
         'loginrequired' => false,
         'ajax'          => false,
@@ -279,6 +280,64 @@ $functions = [
         'services'      => ['lmshomepage_dashboard'],
     ],
 
+    // ── 16. Competencies this Month ───────────────────────────────────────
+    // Dashboard Data Review (12 Aug 2026), Issue 1. Replaces the old "Units
+    // Completed this Month" KPI's raw mdl_course_completions count (which
+    // mixed in RPL/CT outcomes) with a count sourced only from approved
+    // marking sheets — genuine assessed competencies.
+    'local_lmshomepage_get_competencies_this_month' => [
+        'classname'     => \local_lmshomepage\external\get_competencies_this_month::class,
+        'methodname'    => 'execute',
+        'description'   => 'Return approved marking sheets (genuine competencies) within a date range, default current month.',
+        'type'          => 'read',
+        'loginrequired' => false,
+        'ajax'          => false,
+        'services'      => ['lmshomepage_dashboard'],
+    ],
+
+    // ── 17. RPLs this Month ───────────────────────────────────────────────
+    // Dashboard Data Review (12 Aug 2026), Issue 1. Companion to
+    // get_competencies_this_month — Training Plan records with outcome=RPL
+    // whose enddate falls in the target period.
+    'local_lmshomepage_get_rpls_this_month' => [
+        'classname'     => \local_lmshomepage\external\get_rpls_this_month::class,
+        'methodname'    => 'execute',
+        'description'   => 'Return Training Plan RPL outcomes within a date range, default current month.',
+        'type'          => 'read',
+        'loginrequired' => false,
+        'ajax'          => false,
+        'services'      => ['lmshomepage_dashboard'],
+    ],
+
+    // ── 18. Enrolled this Month (deduped, cohort-keyed) ───────────────────
+    // Dashboard Data Review (12 Aug 2026), Issue 2. Replaces the old
+    // "Enrolled this Month" figure (one row per course enrolment, so a
+    // student in N courses counted N times) with one row per student, dated
+    // by their earliest cohort_members.timeadded.
+    'local_lmshomepage_get_enrolled_this_month' => [
+        'classname'     => \local_lmshomepage\external\get_enrolled_this_month::class,
+        'methodname'    => 'execute',
+        'description'   => 'Return one row per student newly assigned to a cohort within a date range, default current month.',
+        'type'          => 'read',
+        'loginrequired' => false,
+        'ajax'          => false,
+        'services'      => ['lmshomepage_dashboard'],
+    ],
+
+    // ── 0. Plugin version info ───────────────────────────────────────────────
+    // Returns the installed plugin release string and version integer.
+    // Lets the LMS Hosting Services admin panel verify the exact version on
+    // each client site without Moodle admin credentials.
+    'local_lmshomepage_get_plugin_info' => [
+        'classname'     => \local_lmshomepage\external\get_plugin_info::class,
+        'methodname'    => 'execute',
+        'description'   => 'Return the installed plugin release string and version integer for remote version verification.',
+        'type'          => 'read',
+        'loginrequired' => false,
+        'ajax'          => false,
+        'services'      => ['lmshomepage_dashboard'],
+    ],
+
     // ── 15. User Courses (bulk) ───────────────────────────────────────────
     // Single-call replacement for the 3-request-per-learner pattern:
     //   gradereport_overview_get_course_grades (course discovery)
@@ -334,6 +393,7 @@ $services = [
             'block_xp_get_leaderboard',                             // site-wide XP leaderboard (courseid=0)
 
             // ── Custom functions (defined above in $functions) ────────────
+            'local_lmshomepage_get_plugin_info',                    // version verification (release string + version int)
             'local_lmshomepage_get_active_user_count',              // non-suspended user count (replaces inaccurate proxy)
             'local_lmshomepage_get_course_completion_counts',       // real completions from mdl_course_completions
             'local_lmshomepage_get_monthly_active_user_count',      // distinct users active in last N days
@@ -371,6 +431,11 @@ $services = [
             'core_course_get_categories',                           // course category tree (visible only)
             'local_lmshomepage_get_all_categories',                 // all categories including hidden (ITLC)
             'local_lmshomepage_get_completion_report',              // per-student activity + course completion with initial dates (ITLC)
+
+            // ── Dashboard Data Review (12 Aug 2026) — split KPIs ──────────────
+            'local_lmshomepage_get_competencies_this_month',        // genuine competencies from approved marking sheets
+            'local_lmshomepage_get_rpls_this_month',                // Training Plan RPL outcomes
+            'local_lmshomepage_get_enrolled_this_month',            // one row per student, cohort-assignment-keyed
         ],
         'requiredcapability' => '',
         'restrictedusers'    => 0,

@@ -42,8 +42,9 @@
  *   grade_percent, competency_status,   ← C / NYC / RPL / CT / ''
  *   completion_status,                  ← Complete / Incomplete / Not attempted
  *   trainer_id, trainer_name, trainer_email
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -54,7 +55,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_vet_grade_report extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'course_id'      => new \external_value(PARAM_INT,  'Filter to a specific course ID. 0 = all.', VALUE_DEFAULT, 0),
             'student_userid' => new \external_value(PARAM_INT,  'Filter to a specific student user ID. 0 = all.', VALUE_DEFAULT, 0),
@@ -66,7 +67,7 @@ class get_vet_grade_report extends \external_api {
         ]);
     }
 
-    public static function execute (
+    public static function execute(
         int $course_id      = 0,
         int $student_userid = 0,
         int $group_id       = 0,
@@ -76,6 +77,17 @@ class get_vet_grade_report extends \external_api {
         int $to_date        = 0
     ): array {
         global $DB;
+
+        self::validate_context(\context_system::instance());
+        self::validate_parameters(self::execute_parameters(), [
+            'course_id'      => $course_id,
+            'student_userid' => $student_userid,
+            'group_id'       => $group_id,
+            'cohort_id'      => $cohort_id,
+            'trainer_userid' => $trainer_userid,
+            'from_date'      => $from_date,
+            'to_date'        => $to_date,
+        ]);
 
         $now    = time();
         $params = ['now1' => $now, 'now2' => $now, 'itemtype_mod' => 'mod'];
@@ -138,11 +150,16 @@ class get_vet_grade_report extends \external_api {
                               AND LOWER(u_t.firstname) NOT LIKE 'test%'
                               AND u_t.username NOT IN ('admin', 'guest')";
 
+        // ── DB-portable string concatenation helpers ──────────────────────────
+        $sql_recid        = $DB->sql_concat('u.id', "'_'", 'gi.id');
+        $sql_fullname     = $DB->sql_concat('u.firstname', "' '", 'u.lastname');
+        $sql_trainer_name = $DB->sql_concat('trainer.firstname', "' '", 'trainer.lastname');
+
         $sql = "
             SELECT
-                CONCAT(u.id, '_', gi.id)                                AS recid,
+                {$sql_recid}                                            AS recid,
                 u.id                                                     AS userid,
-                CONCAT(u.firstname, ' ', u.lastname)                    AS fullname,
+                {$sql_fullname}                                         AS fullname,
                 COALESCE(u.idnumber, '')                                AS student_idnumber,
                 c.id                                                     AS courseid,
                 c.fullname                                               AS course_name,
@@ -162,7 +179,7 @@ class get_vet_grade_report extends \external_api {
                 COALESCE(gg.timemodified, 0)                            AS graded_date,
                 COALESCE(cmc.completionstate, 0)                        AS completionstate,
                 COALESCE(trainer.id, 0)                                 AS trainer_id,
-                COALESCE(CONCAT(trainer.firstname, ' ', trainer.lastname), '') AS trainer_name,
+                COALESCE({$sql_trainer_name}, '')                       AS trainer_name,
                 COALESCE(trainer.email, '')                             AS trainer_email
             FROM   {grade_items} gi
             JOIN   {course} c  ON c.id = gi.courseid AND c.id != 1 AND c.visible = 1
@@ -250,9 +267,10 @@ class get_vet_grade_report extends \external_api {
         // We only need this if assign module exists.
         $assignLookup = [];
         if ($assignModId) {
+            $sql_assign_key = $DB->sql_concat('asub.userid', "'_'", 'cm2.id');
             $assignSql = "
                 SELECT
-                    CONCAT(asub.userid, '_', cm2.id) AS key2,
+                    {$sql_assign_key}                AS key2,
                     COALESCE(a.duedate, 0)           AS due_date,
                     COALESCE(asub.timemodified, 0)   AS submitted_date
                 FROM {assign} a
@@ -338,7 +356,7 @@ class get_vet_grade_report extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'            => new \external_value(PARAM_INT,   'Student user ID'),

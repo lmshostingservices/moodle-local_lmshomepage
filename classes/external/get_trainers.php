@@ -18,7 +18,7 @@
  * External function: local_lmshomepage_get_trainers
  *
  * Returns trainers with their allocated student count, sourced from the
- * 'wombat_trainer' custom profile field ("Your Trainer Is").
+ * 'trainername' custom profile field ("Your Trainer Is").
  *
  * REWRITE (v2.11.25) — previous approach and why it was wrong:
  *   The previous version used group co-membership to determine who is a
@@ -29,7 +29,7 @@
  *       report when students were in overlapping groups.
  *
  * New approach (same source as get_trainer_allocations and get_completed_units):
- *   1. Query every non-empty value in the wombat_trainer profile field across
+ *   1. Query every non-empty value in the trainername profile field across
  *      all active students.
  *   2. Match each stored string against mdl_user to resolve the trainer record.
  *   3. Count distinct active students per trainer.
@@ -41,8 +41,9 @@
  * Usage (REST):
  *   wsfunction=local_lmshomepage_get_trainers
  *   course_id=0   (kept for API compatibility — not used)
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -53,51 +54,55 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_trainers extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'course_id' => new \external_value(
                 PARAM_INT,
-                'Kept for API compatibility. Not used — trainers are derived from the wombat_trainer profile field.',
+                'Kept for API compatibility. Not used — trainers are derived from the trainername profile field.',
                 VALUE_DEFAULT,
                 0
             ),
         ]);
     }
 
-    public static function execute (int $course_id = 0): array {
+    public static function execute(int $course_id = 0): array {
         global $DB;
+
+        self::validate_context(\context_system::instance());
+        self::validate_parameters(self::execute_parameters(), [
+            'course_id' => $course_id,
+        ]);
 
         $now = time();
 
-        // Resolve the wombat_trainer profile field ID.
+        // Resolve the trainername profile field ID.
         // If the field exists use the profile-field approach (Wombat).
         // If it does not exist fall back to the role-based approach so that
-        // sites without the wombat_trainer field (e.g. AIOP) still get a
+        // sites without the trainername field (e.g. AIOP) still get a
         // populated trainer list.
-        $fieldId = (int) $DB->get_field('user_info_field', 'id', ['shortname' => 'wombat_trainer']);
+        $fieldId = (int) $DB->get_field('user_info_field', 'id', ['shortname' => 'trainername']);
+
+        // ── DB-portable string concatenation helper ───────────────────────────
+        $sql_trainer_name_match = 'LOWER(TRIM(' . $DB->sql_concat('trainer.firstname', "' '", 'trainer.lastname') . '))';
 
         if ($fieldId) {
             // ── Profile-field path (Wombat) ───────────────────────────────────
-            // Trainer identity comes from the wombat_trainer custom field set on
+            // Trainer identity comes from the trainername custom field set on
             // each student's profile.  This guarantees the list matches the
             // Trainer Allocation and Completed Units reports exactly.
+            // Group by the raw trainer LABEL (uid_tr.data), not a matched user account.
+            // The stored values are usually first names (Mel, Steph, ...) that do not
+            // resolve to a user's full name, so the previous inner JOIN to {user} returned
+            // an almost-empty list. A LEFT JOIN still resolves a user id where the label is
+            // a full name (best-effort), but every label with active students is now listed.
             $sql = "
                 SELECT
-                    trainer.id                                                  AS trainerid,
-                    CONCAT(trainer.firstname, ' ', trainer.lastname)           AS fullname,
-                    trainer.email,
+                    TRIM(uid_tr.data)                                           AS fullname,
+                    COALESCE(MIN(trainer.id), 0)                                AS trainerid,
+                    COALESCE(MIN(trainer.email), '')                            AS email,
                     COUNT(DISTINCT u.id)                                        AS studentcount
 
                 FROM {user_info_data} uid_tr
-
-                -- ── Resolve trainer name → trainer user record ────────────────
-                JOIN {user} trainer
-                    ON  trainer.deleted   = 0
-                    AND trainer.suspended = 0
-                    AND trainer.id       != 1
-                    AND trainer.username NOT IN ('admin', 'guest')
-                    AND LOWER(TRIM(CONCAT(trainer.firstname, ' ', trainer.lastname)))
-                      = LOWER(TRIM(uid_tr.data))
 
                 -- ── The student who has this trainer set ──────────────────────
                 JOIN {user} u
@@ -123,15 +128,24 @@ class get_trainers extends \external_api {
                        AND (ue2.timeend = 0 OR ue2.timeend > :now_ts)
                 ) active_stu ON active_stu.userid = u.id
 
+                -- ── Best-effort resolve of the label to a trainer user record ─
+                LEFT JOIN {user} trainer
+                    ON  trainer.deleted   = 0
+                    AND trainer.suspended = 0
+                    AND trainer.id       != 1
+                    AND trainer.username NOT IN ('admin', 'guest')
+                    AND {$sql_trainer_name_match}
+                      = LOWER(TRIM(uid_tr.data))
+
                 WHERE uid_tr.fieldid  = :field_id
                   AND uid_tr.data    IS NOT NULL
                   AND TRIM(uid_tr.data) != ''
 
-                GROUP BY trainer.id, trainer.firstname, trainer.lastname, trainer.email
+                GROUP BY TRIM(uid_tr.data)
 
                 HAVING COUNT(DISTINCT u.id) > 0
 
-                ORDER BY trainer.lastname, trainer.firstname
+                ORDER BY fullname
             ";
 
             $rows = $DB->get_records_sql($sql, [
@@ -140,14 +154,15 @@ class get_trainers extends \external_api {
             ]);
 
         } else {
-            // ── Role-based path (AIOP and sites without wombat_trainer) ───────
+            // ── Role-based path (AIOP and sites without trainername) ───────
             // Find all users who hold editingteacher / teacher / trainer role in
             // a visible course and have at least one active student enrolled in
             // that same course.  Excludes system/test accounts.
+            $sql_trainer_fullname = $DB->sql_concat('trainer.firstname', "' '", 'trainer.lastname');
             $sql = "
                 SELECT
                     trainer.id                                                  AS trainerid,
-                    CONCAT(trainer.firstname, ' ', trainer.lastname)           AS fullname,
+                    {$sql_trainer_fullname}                                     AS fullname,
                     trainer.email,
                     COUNT(DISTINCT stu.userid)                                  AS studentcount
 
@@ -203,13 +218,13 @@ class get_trainers extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'trainerid'    => new \external_value(PARAM_INT,  'Trainer user ID'),
                 'fullname'     => new \external_value(PARAM_TEXT, 'Trainer full name'),
                 'email'        => new \external_value(PARAM_TEXT, 'Trainer email address'),
-                'studentcount' => new \external_value(PARAM_INT,  'Number of active students with this trainer set in their wombat_trainer profile field'),
+                'studentcount' => new \external_value(PARAM_INT,  'Number of active students with this trainer set in their trainername profile field'),
             ])
         );
     }

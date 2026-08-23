@@ -14,6 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Part of the local_lmshomepage plugin.
+ *
+ * @package    local_lmshomepage
+ * @copyright  2026 College Australia
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 namespace local_lmshomepage;
 
 defined('MOODLE_INTERNAL') || die();
@@ -21,9 +29,6 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Hook callbacks for Moodle 5+.
  * Moodle 4.x uses the equivalent lib.php callback functions.
- * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class hook_callbacks {
     /**
@@ -33,7 +38,7 @@ class hook_callbacks {
      * For Moodle < 4.3, the lib.php callback local_lmshomepage_before_standard_html_head()
      * is used instead.
      */
-    public static function before_standard_html_head (\core\hook\output\before_standard_head_html_generation $hook): void {
+    public static function before_standard_html_head(\core\hook\output\before_standard_head_html_generation $hook): void {
         static $head_done = false;
         if ($head_done || !self::is_active()) {
             return;
@@ -46,7 +51,7 @@ class hook_callbacks {
         $hook->add_html('<link rel="stylesheet" href="' . s($apiurl . '/moodle-widget.css') . '">');
     }
 
-    private static function fullwidth_css (): string {
+    private static function fullwidth_css(): string {
         return '<style>'
              // Full-width layout overrides
              . '#page,#page-wrapper,#page-content,.main-inner,#region-main,#region-main-box,[role="main"]'
@@ -88,7 +93,7 @@ class hook_callbacks {
     /**
      * Inject the dashboard container and widget script before the footer.
      */
-    public static function before_footer (\core\hook\output\before_footer_html_generation $hook): void {
+    public static function before_footer(\core\hook\output\before_footer_html_generation $hook): void {
         static $footer_done = false;
         if ($footer_done || !self::is_active()) {
             return;
@@ -110,7 +115,7 @@ class hook_callbacks {
      *     catches managers whose role was configured without explicitly
      *     inheriting the manager archetype but who still have report access.
      */
-    private static function user_has_manager_role (int $userid): bool {
+    private static function user_has_manager_role(int $userid): bool {
         global $DB;
 
         // ── Check 1: Moodle archetype API ─────────────────────────────────────
@@ -158,7 +163,7 @@ class hook_callbacks {
      * This catches non-editing teachers who only have course-level role assignments
      * and therefore won't have the relevant capabilities at the system context.
      */
-    private static function user_has_teacher_role (int $userid): bool {
+    private static function user_has_teacher_role(int $userid): bool {
         global $DB;
 
         // Collect role IDs for 'teacher' and 'editingteacher' archetypes.
@@ -180,7 +185,7 @@ class hook_callbacks {
         );
     }
 
-    private static function is_active (): bool {
+    private static function is_active(): bool {
         global $PAGE, $USER, $COURSE;
 
         // ── Hard exclusions — checked FIRST, before any other logic ──────────
@@ -231,11 +236,11 @@ class hook_callbacks {
         return false;
     }
 
-    private static function api_url (): string {
+    private static function api_url(): string {
         return rtrim((string) get_config('local_lmshomepage', 'apiurl'), '/');
     }
 
-    public static function widget_html (): string {
+    public static function widget_html(): string {
         // ── Single-render guarantee ───────────────────────────────────────────
         // This guard lives here — not in the callers — because on Moodle 4.3–4.5
         // BOTH lib.php's local_lmshomepage_before_footer() AND the Hooks API

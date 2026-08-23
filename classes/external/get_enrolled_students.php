@@ -52,8 +52,9 @@
  *     },
  *     ...
  *   ]
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -64,7 +65,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_enrolled_students extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'courseids' => new \external_value(
                 PARAM_TEXT,
@@ -88,8 +89,14 @@ class get_enrolled_students extends \external_api {
      * @param string $roleshortname Role to filter on (empty = all roles).
      * @return array
      */
-    public static function execute (string $courseids = '', string $roleshortname = 'student'): array {
+    public static function execute(string $courseids = '', string $roleshortname = 'student'): array {
         global $DB;
+
+        self::validate_context(\context_system::instance());
+        self::validate_parameters(self::execute_parameters(), [
+            'courseids'     => $courseids,
+            'roleshortname' => $roleshortname,
+        ]);
 
         // ── Build course ID filter ────────────────────────────────────────
         $courseWhere = 'c.id != 1 AND c.visible = 1';
@@ -117,6 +124,11 @@ class get_enrolled_students extends \external_api {
             $roleParams['roleshortname'] = $roleshortname;
         }
 
+        // ── DB-portable name concatenation ────────────────────────────────
+        // $DB->sql_concat() handles NULL coalescing correctly on all engines
+        // (MySQL CONCAT, PostgreSQL ||, etc.) — avoids raw CONCAT() in SQL strings.
+        $sqlFullname = $DB->sql_concat('u.firstname', "' '", 'u.lastname');
+
         // ── Main query ────────────────────────────────────────────────────
         // mdl_context  (contextlevel=50 = CONTEXT_COURSE)
         // mdl_role_assignments  — who has what role in each course context
@@ -124,12 +136,11 @@ class get_enrolled_students extends \external_api {
         // mdl_user_lastaccess   — when user last accessed the specific course
         $sql = "
             SELECT
-                CONCAT(ue.userid, '_', e.courseid) AS recid,
                 e.courseid,
                 u.id        AS userid,
                 u.firstname,
                 u.lastname,
-                CONCAT(u.firstname, ' ', u.lastname) AS fullname,
+                {$sqlFullname} AS fullname,
                 u.suspended,
                 u.deleted,
                 COALESCE(ula.timeaccess, 0) AS lastcourseaccess,
@@ -153,7 +164,7 @@ class get_enrolled_students extends \external_api {
             ORDER BY e.courseid, u.id
         ";
 
-        $rows = $DB->get_records_sql($sql, array_merge($courseParams, $roleParams, ['now' => time()]));
+        $rows = $DB->get_recordset_sql($sql, array_merge($courseParams, $roleParams, ['now' => time()]));
 
         $result = [];
         foreach ($rows as $row) {
@@ -167,11 +178,12 @@ class get_enrolled_students extends \external_api {
                 'timecreated'     => (int)  $row->timecreated,
             ];
         }
+        $rows->close();
 
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'courseid'         => new \external_value(PARAM_INT,    'Course ID'),

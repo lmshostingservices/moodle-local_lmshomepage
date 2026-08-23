@@ -1,10 +1,90 @@
 == LMS Home Page Plugin — Changelog ==
 
-Version 2.11.38  (2026-08-03)
+Version 2.11.59  (2026-08-23)
 ------------------------------
-CHANGED: version bump only (code 2026080303 → 2026080304). Forces Moodle to
-  re-detect and run the upgrade. Identical code to 2.11.37 — no functional or
-  schema changes.
+IMPROVED: Release packaging and validation hardening. Runtime input types now use
+specific Moodle parameter types, and the release artifact uses the Moodle-required
+lmshomepage/ ZIP root. No schema changes.
+
+Version 2.11.58  (2026-08-23)
+------------------------------
+IMPROVED: get_assessment_submissions performance on large Wombat report calls. The
+function now resolves trainername matches once per request, resolves trainer-allocation
+pseudo-group labels once before group deduplication, and reads Training Plan dates by
+the current student/course composite key instead of aggregating all plan rows before
+the report population is known. Existing output fields, ordering, exclusion patterns,
+MAX(assign_grades.id) deduplication, Training Plan table guards, and RPT-16/RPT-17
+behaviour are retained. Includes a read-only old-versus-new CLI verification harness.
+No schema changes.
+
+Version 2.11.50  (2026-08-13)
+------------------------------
+FIXED: get_assessment_submissions — assign_grades LEFT JOIN had no dedup constraint. Moodle
+  stores one row per grading ATTEMPT, not one per student, so a student graded more than once
+  on the same assignment (regrade, resubmission after marking, etc.) produced one duplicate
+  result row per extra grade record. Found via client testing on the live Trainer Marking
+  Report: "Keira Wright / CHCCOM005 v25.0 / Assessment task 1" appeared 5+ times in a single
+  CSV export. Same root cause was inflating the dashboard's "Overdue Submissions" KPI (showing
+  549) and breaking the Trainer Marking Report's pagination client-side (duplicate rows produced
+  duplicate React keys, freezing "next page" after page 5). Constrained the JOIN with a
+  MAX(id) subquery so each (assignment, student) pair now returns exactly one grade record —
+  the latest qualifying one. No other function changed; no schema changes.
+
+Version 2.11.49  (2026-08-12)
+------------------------------
+FIXED: attendance_kpi_check scheduled task — was failing on 100% of runs
+  (21/21 logged runs in mdl_task_log, confirmed live via Adminer). Root
+  cause: the task queried mdl_attendance directly with no guard for whether
+  mod_attendance is installed. mod_attendance is NOT installed on this
+  site ("Table 'wombatdb.mdl_attendance' doesn't exist"), so every run threw
+  immediately at the first query and aborted before checking a single
+  student. Added $DB->get_manager()->table_exists('attendance') guard
+  (matching the same defensive pattern already used elsewhere in this
+  plugin, e.g. get_attendance_report.php's mod_attendance bail-out, and the
+  two new *_this_month functions added in 2.11.48) — the task now logs a
+  clean "mod_attendance is not installed — skipping" message and exits
+  instead of throwing. Pre-existing bug, unrelated to and discovered during
+  post-install regression testing of the 2.11.48 dashboard KPI changes.
+  No other files changed in this release; all 2.11.48 functions untouched.
+
+Version 2.11.48  (2026-08-12)
+------------------------------
+ADDED: local_lmshomepage_get_competencies_this_month — Dashboard Data Review
+  (12 Aug 2026), Issue 1. Counts genuine competencies only, sourced from
+  approved local_finalmarkingsheet rows (deemedcompetentdate), independent of
+  mdl_course_completions.
+ADDED: local_lmshomepage_get_rpls_this_month — companion function. Counts
+  block_trainingplan_userseq rows with outcome=RPL whose enddate falls in the
+  target period.
+  Together these replace the old "Units Completed this Month" KPI, which
+  counted raw mdl_course_completions.timecompleted rows regardless of
+  outcome. Root cause proven on live data (12 Aug 2026): of ~210 completions
+  recorded that month, 135 were RPL, 11 CT, 31 IP, 2 NA, and only 19 were
+  genuine marksheet-based C outcomes — while the separate Completed Units
+  report and marking-sheet count both independently showed ~36-37. Existing
+  functions (get_completed_units, get_course_completion_counts) are
+  unchanged; the old KPI can keep using them, or be retired in favour of the
+  two new ones per the client's request.
+ADDED: local_lmshomepage_get_enrolled_this_month — Dashboard Data Review,
+  Issue 2. One row per student, keyed to the EARLIEST mdl_cohort_members
+  .timeadded across their cohorts (i.e. cohort assignment / Training Plan
+  generation date), replacing the old per-course-enrolment count that
+  counted a student once per enrolled course.
+No schema changes. All three additions are new, read-only web service
+functions — no existing function's behaviour changed.
+
+Version 2.11.42  (2026-08-10)
+------------------------------
+FIXED: get_cohort_matrix — RPL / CT / NA outcomes were never displayed anywhere on
+  the site (site-wide matrix showed only NYS/IP/C) even though the training plan held
+  1,391 NA + 1,291 RPL + 135 CT rows. Root cause proven on live data: RPL/CT/NA units
+  are recognised WITHOUT the student sitting the unit, so their cohort-sync enrolment
+  is suspended/removed — 0 of the 2,817 RPL/CT/NA rows had an active (status=0)
+  enrolment. The matrix's `enrol_check` was an INNER JOIN filtered to status=0, which
+  silently dropped every one of those student-course rows. Changed `enrol_check` to a
+  LEFT JOIN (rows are already scoped to genuine cohort members in cohort-synced
+  courses by the joins above), so RPL/CT/NA now surface. Removed the now-unused
+  :now_ts parameter.
 No schema changes.
 
 Version 2.11.37  (2026-08-03)

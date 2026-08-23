@@ -15,17 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * External function: local_lmshomepage_get_completion_report  (v2.11.36)
+ * External function: local_lmshomepage_get_completion_report  (v2.11.43)
  *
  * Returns one row per enrolled student with per-activity and course-level
  * completion data for a single Moodle course.
  *
- * DEBUG MODE (v2.11.34):
- * If a DB query fails, the function returns a single sentinel row where
- * fullname = "FAIL:<STEP>:<error>" so the calling server can read the
- * failing step without needing Moodle developer debug mode enabled.
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -36,23 +32,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_completion_report extends \external_api {
-    /** Build a sentinel error row visible in the WS response without debug mode. */
-    private static function err (string $step, string $msg): array {
-        return [[
-            'userid'                        => -1,
-            'fullname'                      => 'FAIL:' . $step . ':' . substr($msg, 0, 250),
-            'idnumber'                      => '',
-            'email'                         => '',
-            'group_name'                    => '',
-            'trainer_name'                  => '',
-            'enrol_date'                    => 0,
-            'course_completed'              => 0,
-            'course_initial_completed_date' => 0,
-            'activity_completions'          => [],
-        ]];
-    }
-
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'courseid' => new \external_value(PARAM_INT, 'Course ID', VALUE_REQUIRED),
             'group_id' => new \external_value(PARAM_INT, 'Group filter (0=all)', VALUE_DEFAULT, 0),
@@ -60,8 +40,15 @@ class get_completion_report extends \external_api {
         ]);
     }
 
-    public static function execute (int $courseid, int $group_id = 0, int $trainer_userid = 0): array {
+    public static function execute(int $courseid, int $group_id = 0, int $trainer_userid = 0): array {
         global $DB;
+
+        self::validate_context(\context_system::instance());
+        self::validate_parameters(self::execute_parameters(), [
+            'courseid'        => $courseid,
+            'group_id'        => $group_id,
+            'trainer_userid'  => $trainer_userid,
+        ]);
 
         if ($courseid <= 1) {
             return [];
@@ -74,9 +61,11 @@ class get_completion_report extends \external_api {
                 ['cid' => $courseid]
             );
         } catch (\dml_exception $e) {
-            return self::err('STEP1_CONTEXT', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         } catch (\Throwable $e) {
-            return self::err('STEP1_CONTEXT_PHP', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         }
         if (!$ctx) {
             return [];
@@ -101,9 +90,11 @@ class get_completion_report extends \external_api {
                 $teacherIds[(int)$tr->userid] = true;
             }
         } catch (\dml_exception $e) {
-            return self::err('STEP2A_TEACHERS', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         } catch (\Throwable $e) {
-            return self::err('STEP2A_TEACHERS_PHP', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         }
 
         // Query 2b: enrolled users with their enrol dates
@@ -128,9 +119,11 @@ class get_completion_report extends \external_api {
                  ORDER BY u.lastname, u.firstname
             ", ['courseid' => $courseid, 'now' => time()]);
         } catch (\dml_exception $e) {
-            return self::err('STEP2B_ENROL', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         } catch (\Throwable $e) {
-            return self::err('STEP2B_ENROL_PHP', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         }
 
         // Build studentRows: deduplicate by userid, take minimum enrol date
@@ -178,9 +171,11 @@ class get_completion_report extends \external_api {
                  ORDER BY cm.section, cm.id
             ", ['courseid' => $courseid]);
         } catch (\dml_exception $e) {
-            return self::err('STEP3_CM_LIST', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         } catch (\Throwable $e) {
-            return self::err('STEP3_CM_LIST_PHP', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         }
 
         $byModname = [];
@@ -285,9 +280,11 @@ class get_completion_report extends \external_api {
                  ORDER BY g.name
             ", ['courseid' => $courseid]);
         } catch (\dml_exception $e) {
-            return self::err('STEP4_GROUPS', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         } catch (\Throwable $e) {
-            return self::err('STEP4_GROUPS_PHP', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         }
 
         $studentGroupId   = [];
@@ -309,7 +306,7 @@ class get_completion_report extends \external_api {
                        u.id                              AS trainer_id,
                        u.lastname                        AS trainer_lastname,
                        u.firstname                       AS trainer_firstname,
-                       u.firstname || ' ' || u.lastname  AS trainer_name
+                       " . $DB->sql_concat('u.firstname', "' '", 'u.lastname') . "  AS trainer_name
                   FROM {role_assignments} ra
                   JOIN {role}           r   ON r.id = ra.roleid
                                           AND r.shortname IN ('editingteacher','teacher')
@@ -320,9 +317,11 @@ class get_completion_report extends \external_api {
                  ORDER BY gm.groupid, u.lastname, u.firstname
             ", ['courseid' => $courseid, 'ctxid' => $contextid]);
         } catch (\dml_exception $e) {
-            return self::err('STEP5_TRAINERS', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         } catch (\Throwable $e) {
-            return self::err('STEP5_TRAINERS_PHP', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         }
         foreach ($trainerRows as $r) {
             $gid = (int)$r->groupid;
@@ -374,9 +373,11 @@ class get_completion_report extends \external_api {
                        AND cmc.completionstate > 0
                 ", $inparams);
             } catch (\dml_exception $e) {
-                return self::err('STEP8A_ACT_COMP_SIMPLE', $e->getMessage());
+                debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+                return [];
             } catch (\Throwable $e) {
-                return self::err('STEP8A_ACT_COMP_SIMPLE_PHP', $e->getMessage());
+                debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+                return [];
             }
 
             // Build map: userid => cmid => {state, initial_completed_date}
@@ -528,9 +529,11 @@ class get_completion_report extends \external_api {
                    AND userid $insql2
             ", array_merge(['courseid' => $courseid], $inparams2));
         } catch (\dml_exception $e) {
-            return self::err('STEP9_COURSE_COMP', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         } catch (\Throwable $e) {
-            return self::err('STEP9_COURSE_COMP_PHP', $e->getMessage());
+            debugging('lmshomepage_get_completion_report: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
         }
 
         $courseCompMap = [];
@@ -576,11 +579,11 @@ class get_completion_report extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'       => new \external_value(PARAM_INT,  'Student user ID'),
-                'fullname'     => new \external_value(PARAM_TEXT, 'Student full name (or FAIL:<step>:<msg> for debug)'),
+                'fullname'     => new \external_value(PARAM_TEXT, 'Student full name'),
                 'idnumber'     => new \external_value(PARAM_TEXT, 'Student ID number'),
                 'email'        => new \external_value(PARAM_TEXT, 'Student email'),
                 'group_name'   => new \external_value(PARAM_TEXT, 'Group name'),

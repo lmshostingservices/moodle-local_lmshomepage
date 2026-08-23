@@ -25,8 +25,9 @@
  * from process_legacy_callbacks(); the Hooks API (before_standard_head_html_generation)
  * handles <head> injection instead.  On Moodle < 4.3 the CSS will not be
  * injected — those versions are no longer supported.
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
@@ -43,7 +44,7 @@ defined('MOODLE_INTERNAL') || die();
  * Moodle's footer assembly — causing the widget to appear in the wrong
  * position or not at all.  Always return, never echo.
  */
-function local_lmshomepage_before_footer (): string {
+function local_lmshomepage_before_footer(): string {
     static $done = false;
     if ($done || !_lmshp_is_active()) {
         return '';
@@ -54,7 +55,7 @@ function local_lmshomepage_before_footer (): string {
 
 // ── Internal helpers ────────────────────────────────────────────────────────
 
-function _lmshp_is_active (): bool {
+function _lmshp_is_active(): bool {
     global $PAGE, $USER, $COURSE;
     if (!get_config('local_lmshomepage', 'enabled')) {
         return false;
@@ -80,6 +81,6 @@ function _lmshp_is_active (): bool {
     return false;
 }
 
-function _lmshp_api_url (): string {
+function _lmshp_api_url(): string {
     return rtrim((string) get_config('local_lmshomepage', 'apiurl'), '/');
 }

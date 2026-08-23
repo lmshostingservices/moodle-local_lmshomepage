@@ -1,12 +1,26 @@
 LMS Home Page — Moodle Plugin
 ==============================
-Version: 2.11.38  (version code 2026080304)
+Version: 2.11.54  (version code 2026082100)
 Component: local_lmshomepage
 Requires: Moodle 4.0+ (also supports Moodle 5+)
 
-Latest change (2.11.36): Completion Report quizzes now show Passed/Not Passed like
-assignments (grade-to-pass driven), and the report lists ONLY activities ticked as
-course-completion criteria. See CHANGES.txt for full history.
+Latest change (2.11.54): reconciles completed-unit, marking, and cohort-matrix
+reporting sources; see CHANGES.txt for the full release history.
+
+2.11.54 REPORTING RELEASE — INSTALL & VERIFY
+---------------------------------------------
+1. Upload local_lmshomepage_v2.11.54.zip through Site Admin → Plugins →
+   Install plugins, then complete the Moodle database upgrade.
+2. Confirm Site administration → Plugins → Local plugins → LMS Home Page reports
+   release 2.11.54 / version 2026082100.
+3. In the LMS Hub, compare the Trainer Marking Report with the Overdue
+   Submissions and Grading Backlog dashboard cards. They use the same 365-day
+   submission window.
+4. Check one approved marking-sheet completion and one native course completion
+   without an approved marking sheet. Both should appear in Completed Units; the
+   approved marking-sheet date takes precedence where it exists.
+5. Open a cohort matrix and export CSV. The export must contain exactly the
+   student-by-unit cells shown in the matrix, with matching outcomes.
 
 
 WHAT IT DOES

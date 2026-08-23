@@ -2,17 +2,17 @@
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// You can redistribute it and/or modify it under the terms of the GNU General Public License
+// As published by the Free Software Foundation, either version 3 of the License, or any later version.
 // (at your option) any later version.
 //
 // Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// However, it is WITHOUT ANY WARRANTY, including implied warranties of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU General Public License along with Moodle.
+// If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * External function: local_lmshomepage_get_cohort_matrix
@@ -42,8 +42,9 @@
  *   wsfunction=local_lmshomepage_get_cohort_matrix
  *   cohort_id=5     (int, required)
  *   course_id=0     (int, optional — 0 = all courses for this cohort)
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -54,7 +55,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_cohort_matrix extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'cohort_id' => new \external_value(
                 PARAM_INT,
@@ -70,11 +71,18 @@ class get_cohort_matrix extends \external_api {
         ]);
     }
 
-    public static function execute (int $cohort_id, int $course_id = 0): array {
+    public static function execute(int $cohort_id, int $course_id = 0): array {
         global $DB;
 
-        $now    = time();
-        $params = ['now_ts' => $now];
+        self::validate_context(\context_system::instance());
+        self::validate_parameters(self::execute_parameters(), [
+            'cohort_id' => $cohort_id,
+            'course_id' => $course_id,
+        ]);
+
+        // (No :now_ts needed since the enrolment presence check is no longer
+        // Filtered by active status — see the LEFT JOIN enrol_check below.)
+        $params = [];
 
         $cohortWhere = '';
         if ($cohort_id > 0) {
@@ -89,17 +97,17 @@ class get_cohort_matrix extends \external_api {
         }
 
         // ── Training plan table guard ─────────────────────────────────────────
-        // block_trainingplan_userseq is a custom block not present on all sites.
+        // Block_trainingplan_userseq is a custom block not present on all sites.
         // If the table does not exist, substitute literal 0s so the query runs
-        // safely on Signature, TDT, AIOP etc. without SQL errors.
+        // Safely on Signature, TDT, AIOP etc. without SQL errors.
         //
         // The join key is (userid, cohortid, courseid) — cohortid IS included to scope
-        // outcomes to the specific cohort being rendered. Without it, a student enrolled
-        // under two cohorts could show cohort B's RPL/CT/NA outcome in cohort A's matrix
+        // Outcomes to the specific cohort being rendered. Without it, a student enrolled
+        // Under two cohorts could show cohort B's RPL/CT/NA outcome in cohort A's matrix
         // (a compliance problem). The subquery joins back to coh.id from the outer query.
         //
         // Outcome values in the CASE WHEN accept both 'NA' and 'N/A' so sites
-        // that store either variant are handled correctly.
+        // That store either variant are handled correctly.
         $dbman = $DB->get_manager();
         if ($dbman->table_exists('block_trainingplan_userseq')) {
             $tpSelectSql = "
@@ -109,7 +117,7 @@ class get_cohort_matrix extends \external_api {
                 COALESCE(tp.tp_na,    0)                                 AS tp_na,
                 COALESCE(tp.tp_done,  0)                                 AS tp_done";
             // Include cohortid in GROUP BY so a student enrolled under two cohorts
-            // never bleeds cohort A's outcome into cohort B's matrix.
+            // Never bleeds cohort A's outcome into cohort B's matrix.
             // Always join on tp.cohortid = coh.id (coh is always present in the outer query).
             $tpJoinSql = "
                 LEFT JOIN (
@@ -126,21 +134,43 @@ class get_cohort_matrix extends \external_api {
             $tpSelectSql = "0 AS tp_total, 0 AS tp_rpl, 0 AS tp_ct, 0 AS tp_na, 0 AS tp_done";
             $tpJoinSql   = '';
         }
+        // Use the approved competency date as the completion signal where the
+        // Marking-sheet plugin is installed, matching Completed Units and the
+        // Competencies dashboard/report source. Native course completion remains
+        // The fallback for units without an approved marking sheet.
+        if ($dbman->table_exists('local_finalmarkingsheet')) {
+            $fmsSelectSql = 'COALESCE(fms.fms_date, 0) AS fms_completed_date';
+            $fmsJoinSql = "
+                LEFT JOIN (
+                    SELECT userid, courseid, MAX(deemedcompetentdate) AS fms_date
+                    FROM {local_finalmarkingsheet}
+                    WHERE status = 'approved' AND deemedcompetentdate > 0
+                    GROUP BY userid, courseid
+                ) fms ON fms.userid = u.id AND fms.courseid = c.id";
+        } else {
+            $fmsSelectSql = '0 AS fms_completed_date';
+            $fmsJoinSql = '';
+        }
 
         // ── Main query: one row per student per enrolled course ───────────────
         // Uses an enrolment deduplication subquery so students with multiple
-        // active enrolments in the same course produce exactly one row.
+        // Active enrolments in the same course produce exactly one row.
         //
         // Outcome priority: RPL → CT → NA → C → IP → NYS
         // For training plan outcomes, ANY matching row triggers the outcome
         // (tp_rpl > 0, tp_ct > 0, tp_na > 0) rather than requiring ALL rows
-        // to match — this is more correct for typical single-row plans and
-        // prevents outcomes disappearing when a plan has mixed entries.
+        // To match — this is more correct for typical single-row plans and
+        // Prevents outcomes disappearing when a plan has mixed entries.
+
+        // ── DB-portable string concatenation helpers ──────────────────────────
+        $sql_recid    = $DB->sql_concat('u.id', "'_'", 'c.id');
+        $sql_fullname = $DB->sql_concat('u.firstname', "' '", 'u.lastname');
+
         $sql = "
             SELECT
-                CONCAT(u.id, '_', c.id)                                  AS recid,
+                {$sql_recid}                                             AS recid,
                 u.id                                                      AS userid,
-                CONCAT(u.firstname, ' ', u.lastname)                     AS fullname,
+                {$sql_fullname}                                          AS fullname,
                 COALESCE(coh.name, '')                                   AS cohort_name,
                 c.id                                                      AS courseid,
                 c.shortname                                               AS course_shortname,
@@ -148,6 +178,7 @@ class get_cohort_matrix extends \external_api {
                 c.shortname                                               AS unit_code,
                 COALESCE(NULLIF(c.fullname, ''), c.shortname)            AS unit_name,
                 COALESCE(cc.timecompleted, 0)                            AS timecompleted,
+                 $fmsSelectSql,
                 (
                     SELECT COUNT(*)
                     FROM   {course_modules_completion} cmc2
@@ -174,20 +205,31 @@ class get_cohort_matrix extends \external_api {
             JOIN {course} c     ON c.id = en_cs.courseid
                               AND c.id != 1 AND c.visible = 1
                               $courseWhere
-            JOIN (
+            -- Enrolment presence check. This is a LEFT JOIN (not INNER) so that
+            -- students who hold a training-plan outcome but no ACTIVE enrolment are
+            -- still shown. RPL / Credit-Transfer / NA units are recognised WITHOUT the
+            -- student sitting the unit, so their cohort-sync enrolment is typically
+            -- suspended or removed (0 of the site's 2,817 RPL/CT/NA rows had an active
+            -- status=0 enrolment). Previously this was an INNER JOIN filtered to
+            -- status=0, which silently dropped every RPL/CT/NA row and made those
+            -- outcomes invisible in the matrix. The row is already scoped to genuine
+            -- cohort members in cohort-synced courses by the joins above.
+            LEFT JOIN (
                 SELECT DISTINCT ue2.userid, en2.courseid
                 FROM   {user_enrolments} ue2
                 JOIN   {enrol} en2 ON en2.id = ue2.enrolid
-                WHERE  ue2.status = 0
-                  AND  (ue2.timeend = 0 OR ue2.timeend > :now_ts)
             ) enrol_check ON enrol_check.userid = u.id
                          AND enrol_check.courseid = c.id
             LEFT JOIN {course_completions} cc ON cc.userid = u.id AND cc.course = c.id
+             $fmsJoinSql
             $tpJoinSql
             ORDER BY coh.name, u.lastname, u.firstname, c.shortname
         ";
 
-        $rows = $DB->get_records_sql($sql, $params);
+        // A matrix can contain multiple cohort rows for the same student/course
+        // When unfiltered. Stream the recordset so duplicate array keys cannot
+        // Silently remove a displayed cell.
+        $rows = $DB->get_recordset_sql($sql, $params);
 
         $result = [];
         foreach ($rows as $row) {
@@ -207,7 +249,7 @@ class get_cohort_matrix extends \external_api {
                 $outcomeCode = 'CT';
             } elseif ($tpNa > 0) {
                 $outcomeCode = 'NA';
-            } elseif ((int)$row->timecompleted > 0 || ($tpTotal > 0 && $tpDone === $tpTotal)) {
+            } elseif ((int)$row->fms_completed_date > 0 || (int)$row->timecompleted > 0 || ($tpTotal > 0 && $tpDone === $tpTotal)) {
                 $outcomeCode = 'C';
             } elseif ((int)$row->items_complete > 0 || $tpDone > 0) {
                 $outcomeCode = 'IP';
@@ -229,11 +271,12 @@ class get_cohort_matrix extends \external_api {
                 'items_total'      => (int)    $row->items_total,
             ];
         }
+        $rows->close();
 
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'           => new \external_value(PARAM_INT,  'Student user ID'),

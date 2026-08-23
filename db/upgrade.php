@@ -16,13 +16,14 @@
 
 /**
  * Upgrade script for local_lmshomepage.
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
 
-function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
+function xmldb_local_lmshomepage_upgrade(int $oldversion): bool {
     global $CFG, $DB;
     $dbman = $DB->get_manager();
 
@@ -326,7 +327,7 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
     // Fix dml_read_exception on get_student_inactivity, get_assessment_submissions,
     // get_trainer_allocations, get_completed_units: trainer LEFT JOIN is now always
     // included (using fieldid=-1 fallback) so trainer.* aliases in SELECT/GROUP BY
-    // are always valid even when the wombat_trainer profile field doesn't exist.
+    // are always valid even when the trainername profile field doesn't exist.
     // No schema changes in this release.
     if ($oldversion < 2026042606) {
         upgrade_plugin_savepoint(true, 2026042606, 'local', 'lmshomepage');
@@ -344,7 +345,7 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
     }
 
     // ── v2.6.3 → v2.6.4 ─────────────────────────────────────────────────────
-    // Fix get_trainers studentcount: when the wombat_trainer custom profile field
+    // Fix get_trainers studentcount: when the trainername custom profile field
     // does not exist (fieldId = 0), fall back to counting unique students enrolled
     // in courses where the trainer has an editingteacher / teacher role. This
     // provides real student counts without requiring Moodle admin profile field
@@ -355,7 +356,7 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
     }
 
     // ── v2.6.4 → v2.6.5 ─────────────────────────────────────────────────────
-    // Replace wombat_trainer custom profile field dependency across all WS
+    // Replace trainername custom profile field dependency across all WS
     // functions with role-assignment-based teacher lookup:
     //   get_student_inactivity, get_trainer_allocations, get_assessment_submissions,
     //   get_completed_units — all now derive trainer_name / trainer_id from the
@@ -803,7 +804,7 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
     //
     // 6. Trainer allocation — use "Your Trainer Is" profile field: both
     //    get_completed_units and get_trainer_allocations now resolve trainer_name
-    //    from the 'wombat_trainer' custom profile field instead of role
+    //    from the 'trainername' custom profile field instead of role
     //    assignments.  Falls back to fieldid=-1 when the field is absent.
     //
     // No DB schema changes in this release.
@@ -872,7 +873,7 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
 
     // ── v2.8.7 ───────────────────────────────────────────────────────────────
     // get_assessment_submissions: switched trainer source from editingteacher/
-    // teacher role assignment (course-level) to wombat_trainer custom profile
+    // teacher role assignment (course-level) to trainername custom profile
     // field — matching get_trainer_allocations.  Both reports now use the same
     // source of truth.  Falls back to trainer_id=0 / empty name when the field
     // does not exist or is not populated.  No DB schema changes.
@@ -930,7 +931,7 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
 
     // ── v2.9.1 ───────────────────────────────────────────────────────────────
     // get_trainer_allocations: rewritten to derive trainer from course groups
-    // instead of the wombat_trainer custom profile field, which was never
+    // instead of the trainername custom profile field, which was never
     // created in Moodle.  No schema changes required.
     if ($oldversion < 2026042646) {
         upgrade_plugin_savepoint(true, 2026042646, 'local', 'lmshomepage');
@@ -1467,21 +1468,21 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
     // Unified trainer allocation source across all plugin functions:
     //   All four trainer-related functions (get_trainer_allocations,
     //   get_assessment_submissions, get_trainers, get_completed_units) now
-    //   derive trainer allocation exclusively from the 'wombat_trainer' custom
+    //   derive trainer allocation exclusively from the 'trainername' custom
     //   profile field ("Your Trainer Is").  Previously only get_completed_units
     //   used this field; the other three used Moodle group co-membership, which
     //   is unreliable (duplicates per group, wrong trainer when student is in
     //   multiple groups, includes cohort/admin groups).
     //
     // get_trainer_allocations: rewritten — one row per student (not per
-    //   student+group), trainer from wombat_trainer profile field.  Eliminates
+    //   student+group), trainer from trainername profile field.  Eliminates
     //   duplicate student rows for students in multiple groups.
     //
     // get_assessment_submissions: trainer subquery switched from group
-    //   co-membership to wombat_trainer profile field.
+    //   co-membership to trainername profile field.
     //
     // get_trainers: rewritten — trainer list and student counts now derived
-    //   from unique non-empty wombat_trainer values across active students.
+    //   from unique non-empty trainername values across active students.
     //   Replaces group co-membership approach that included former staff.
     //
     // get_course_completion_counts: added student role JOIN so only student
@@ -1583,13 +1584,13 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
 
     // ── v2.11.30 (2026073104) ────────────────────────────────────────────────
     //
-    // get_trainers: restore trainer dropdown on sites without wombat_trainer.
+    // get_trainers: restore trainer dropdown on sites without trainername.
     //
     //   The v2.11.25 rewrite made get_trainers return [] immediately when the
-    //   wombat_trainer custom profile field is absent.  Sites like AIOP that
+    //   trainername custom profile field is absent.  Sites like AIOP that
     //   never had this field lost their trainer dropdown entirely.
     //
-    //   Fix: when wombat_trainer field is absent, fall back to a role-based
+    //   Fix: when trainername field is absent, fall back to a role-based
     //   query — find all users with editingteacher/teacher/trainer role in a
     //   visible course that has at least one active student enrolled.  The
     //   profile-field path (Wombat) is unchanged.
@@ -1731,14 +1732,182 @@ function xmldb_local_lmshomepage_upgrade (int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026080303, 'local', 'lmshomepage');
     }
 
-    // ── v2.11.38 (2026080304) ────────────────────────────────────────────────
+    // ── v2.11.43 (2026081101) ────────────────────────────────────────────────
     //
-    // Version bump only — no code or schema changes. Forces Moodle to re-run the
-    // plugin upgrade so the completion-report changes are picked up. Identical
-    // code to v2.11.36/37.
+    // Security hardening — no schema changes.
+    //   • validate_context() + validate_parameters() added to all 18 WS execute() methods.
+    //   • get_completion_report: removed FAIL:<step>:<msg> sentinel rows (debug leakage);
+    //     errors now logged via debugging() and return [].
+    //   • get_completion_report: trainer SQL uses $DB->sql_concat() instead of || (MySQL fix).
+    //   • log_commhub: message_subject capped at 500 chars, message_body at 10,000 chars.
     //
-    if ($oldversion < 2026080304) {
-        upgrade_plugin_savepoint(true, 2026080304, 'local', 'lmshomepage');
+    if ($oldversion < 2026081101) {
+        upgrade_plugin_savepoint(true, 2026081101, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.44 (2026081102) ────────────────────────────────────────────────
+    //
+    // Added get_plugin_info WS function — no schema changes.
+    //   • New local_lmshomepage_get_plugin_info function returns the installed
+    //     plugin release string and version integer via core_plugin_manager.
+    //     Enables the LMS Hosting Services admin panel to verify the exact
+    //     version installed on each client site without Moodle admin credentials.
+    //   • Function is added to the lmshomepage_dashboard service via an explicit
+    //     idempotent insert so sites upgrading from any prior version get it
+    //     in their token's allowed-function list immediately.
+    //
+    if ($oldversion < 2026081102) {
+        // Register the new external function with the existing service.
+        // db/services.php only populates a NEW service; existing services need an
+        // explicit insert here so that tokens created before this upgrade
+        // automatically gain access to local_lmshomepage_get_plugin_info.
+        $serviceid = $DB->get_field('external_services', 'id', ['shortname' => 'lmshomepage_dashboard']);
+        if ($serviceid) {
+            if (!$DB->record_exists('external_services_functions', [
+                    'externalserviceid' => $serviceid,
+                    'functionname'      => 'local_lmshomepage_get_plugin_info'])) {
+                $DB->insert_record('external_services_functions', [
+                    'externalserviceid' => $serviceid,
+                    'functionname'      => 'local_lmshomepage_get_plugin_info',
+                ]);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026081102, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.47 (2026081200) ────────────────────────────────────────────────
+    //
+    // Version number normalisation — no schema changes.
+    //   • Reverted to standard Moodle 10-digit YYYYMMDDNN format.
+    //     All prior 13-digit version numbers (2026081100001 etc.) are superseded.
+    //   • DB-portable CONCAT: all raw SQL CONCAT() replaced with $DB->sql_concat()
+    //     across get_attendance_report, get_cohort_matrix, get_trainer_allocations,
+    //     get_trainers, get_vet_grade_report, get_assessment_submissions,
+    //     get_enrolled_students, and get_completion_report.
+    //
+    if ($oldversion < 2026081200) {
+        upgrade_plugin_savepoint(true, 2026081200, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.48 (2026081201) ────────────────────────────────────────────────
+    //
+    // Dashboard Data Review (12 Aug 2026) — Issues 1 & 2. No schema changes.
+    //   • get_competencies_this_month: counts approved local_finalmarkingsheet
+    //     rows (deemedcompetentdate). Replaces "Units Completed this Month" KPI
+    //     which conflated C, CT, and RPL outcomes via course_completions.
+    //   • get_rpls_this_month: counts block_trainingplan_userseq rows with
+    //     outcome=RPL and enddate in range. Companion to the above.
+    //   • get_enrolled_this_month: one row per student keyed to earliest
+    //     cohort_members.timeadded, replacing per-course enrolment counting.
+    //   All three are registered with the lmshomepage_dashboard service here
+    //   so existing tokens gain access immediately without manual setup.
+    //
+    if ($oldversion < 2026081201) {
+        $serviceid = $DB->get_field('external_services', 'id', ['shortname' => 'lmshomepage_dashboard']);
+        if ($serviceid) {
+            $newfunctions = [
+                'local_lmshomepage_get_competencies_this_month',
+                'local_lmshomepage_get_rpls_this_month',
+                'local_lmshomepage_get_enrolled_this_month',
+            ];
+            foreach ($newfunctions as $fname) {
+                if (!$DB->record_exists('external_services_functions', [
+                        'externalserviceid' => $serviceid,
+                        'functionname'      => $fname])) {
+                    $DB->insert_record('external_services_functions', [
+                        'externalserviceid' => $serviceid,
+                        'functionname'      => $fname,
+                    ]);
+                }
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026081201, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.49 (2026081202) ────────────────────────────────────────────────
+    //
+    // Fixed attendance_kpi_check scheduled task — no schema changes.
+    //   • Task was failing on 100% of runs because it queried mdl_attendance
+    //     directly with no guard for whether mod_attendance is installed.
+    //     Added the same $DB->get_manager()->table_exists('attendance') guard
+    //     already used in get_attendance_report.php. Task now exits cleanly
+    //     with an mtrace note on sites without mod_attendance.
+    //
+    if ($oldversion < 2026081202) {
+        upgrade_plugin_savepoint(true, 2026081202, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.50 (2026081300) ────────────────────────────────────────────────
+    //
+    // Fixed get_assessment_submissions — no schema changes.
+    //   • The assign_grades LEFT JOIN had no dedup constraint so a student
+    //     graded more than once on the same assignment (regrade / resubmission)
+    //     produced one duplicate result row per extra grade record.
+    //   • Constrained the JOIN to the single latest qualifying grade record per
+    //     (assignment, student) via a MAX(id) subquery.
+    //   • Fixes: duplicate CSV rows, inflated Overdue Submissions KPI (~549),
+    //     and Trainer Marking Report pagination freezing after page 5 due to
+    //     duplicate React keys.
+    //
+    if ($oldversion < 2026081300) {
+        upgrade_plugin_savepoint(true, 2026081300, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.53 (2026081503) ────────────────────────────────────────────────
+    //
+    // Two data-quality fixes — no schema changes.
+    //
+    // Bug 1 (RPT-16): Group column showed trainer name instead of group.
+    //   • get_assessment_submissions + get_trainer_allocations: the group dedup
+    //     subquery used MIN(group_id/name) with no filter on group type.
+    //     Trainer-allocation pseudo-groups ("Steph", "Mel") are real Moodle
+    //     groups and were selected when a student had no real cohort group.
+    //   • Fixed: NOT EXISTS in both group subqueries excludes groups whose name
+    //     matches any trainername profile field value.
+    //
+    // Bug 2 (RPT-17): Staff accounts appearing as students in Marking Report.
+    //   • Staff test accounts held active student role enrolments so the SQL
+    //     student-role filter passed.
+    //   • Fixed in PHP post-processing: rows with no cohort AND no training
+    //     plan are skipped when TP tables exist.
+    //
+    if ($oldversion < 2026081503) {
+        upgrade_plugin_savepoint(true, 2026081503, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.54 (2026082100) ────────────────────────────────────────────────
+    // Reporting-source reconciliation only; no schema changes.
+    if ($oldversion < 2026082100) {
+        upgrade_plugin_savepoint(true, 2026082100, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.56 (2026082300) ────────────────────────────────────────────────
+    //
+    // Configurable username and course-name exclusions for assessment reporting.
+    // No schema changes: values are stored in the standard plugin config table.
+    //
+    if ($oldversion < 2026082300) {
+        upgrade_plugin_savepoint(true, 2026082300, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.57 (2026082301) ────────────────────────────────────────────────
+    // Historical Training Plan outcome resolution for monthly reports.
+    // No local schema change: the separately maintained Training Plan block
+    // owns its transition log, which is inspected safely at runtime.
+    if ($oldversion < 2026082301) {
+        upgrade_plugin_savepoint(true, 2026082301, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.58 (2026082302) ────────────────────────────────────────────────
+    // get_assessment_submissions SQL performance rewrite only; no schema changes.
+    if ($oldversion < 2026082302) {
+        upgrade_plugin_savepoint(true, 2026082302, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.59 (2026082303) ────────────────────────────────────────────────
+    // Release pipeline hardening only; no schema changes.
+    if ($oldversion < 2026082303) {
+        upgrade_plugin_savepoint(true, 2026082303, 'local', 'lmshomepage');
     }
 
     return true;

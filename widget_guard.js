@@ -27,7 +27,7 @@
     if (window.__lmshp_guard) { return; }
     window.__lmshp_guard = true;
 
-    function dedupe () {
+    function dedupe() {
         var all = document.querySelectorAll('#lms-homepage-widget');
         // Keep the first instance; remove every subsequent one.
         for (var i = 1; i < all.length; i++) {

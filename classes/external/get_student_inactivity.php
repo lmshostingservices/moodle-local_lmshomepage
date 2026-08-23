@@ -19,7 +19,7 @@
  *
  * Returns all enrolled students who have not accessed any course within
  * the last N days. Pulls last-access data from mdl_user_lastaccess and
- * joins the wombat_trainer custom profile field to surface the allocated
+ * joins the trainername custom profile field to surface the allocated
  * trainer name alongside each student.
  *
  * Usage (REST):
@@ -43,8 +43,9 @@
  *     },
  *     ...
  *   ]
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -55,7 +56,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_student_inactivity extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'threshold_days' => new \external_value(
                 PARAM_INT,
@@ -71,7 +72,7 @@ class get_student_inactivity extends \external_api {
             ),
             'trainer_userid' => new \external_value(
                 PARAM_INT,
-                'Filter to a specific trainer (by user ID from wombat_trainer profile field). 0 = all trainers.',
+                'Filter to a specific trainer (by user ID from trainername profile field). 0 = all trainers.',
                 VALUE_DEFAULT,
                 0
             ),
@@ -86,8 +87,15 @@ class get_student_inactivity extends \external_api {
      * @param int $trainer_userid Optional trainer filter (0 = all).
      * @return array
      */
-    public static function execute (int $threshold_days = 7, int $cohort_id = 0, int $trainer_userid = 0): array {
+    public static function execute(int $threshold_days = 7, int $cohort_id = 0, int $trainer_userid = 0): array {
         global $DB;
+
+        self::validate_context(\context_system::instance());
+        self::validate_parameters(self::execute_parameters(), [
+            'threshold_days' => $threshold_days,
+            'cohort_id'      => $cohort_id,
+            'trainer_userid' => $trainer_userid,
+        ]);
 
         $params = [];
         $now    = time();
@@ -109,40 +117,42 @@ class get_student_inactivity extends \external_api {
             $trainerWhere = "AND trainer.id = :trainer_userid";
         }
 
-        // Derive the trainer from course role assignments (editingteacher / teacher).
-        // For each student, pick the lowest user ID teacher across all their enrolled
-        // courses. No custom profile field required.
+        // Trainer from the 'trainername' custom profile field ("Your Trainer Is"), consistent
+        // with the Trainer Allocation / Completed Units reports. (Previously this derived the
+        // trainer from course editingteacher/teacher roles, which is why the Student Inactivity
+        // report never showed the allocated trainer that the RTO records in the profile field.)
+        $params['tf_id'] = ((int) $DB->get_field('user_info_field', 'id', ['shortname' => 'trainername'])) ?: -1;
+
+        // DB-portable name concatenation (handles NULL coalescing correctly on all DB engines).
+        $sqlFullname        = $DB->sql_concat('u.firstname', "' '", 'u.lastname');
+        $sqlTrainerFullname = $DB->sql_concat('trainer.firstname', "' '", 'trainer.lastname');
+
         $trainerJoin = "
-            LEFT JOIN (
-                SELECT ue_t.userid AS student_id, MIN(u_t.id) AS trainer_id
-                FROM   {user_enrolments} ue_t
-                JOIN   {enrol}           e_t  ON e_t.id  = ue_t.enrolid
-                JOIN   {context}         c_t  ON c_t.contextlevel = 50
-                                              AND c_t.instanceid = e_t.courseid
-                JOIN   {role_assignments} ra_t ON ra_t.contextid = c_t.id
-                JOIN   {role}            ro_t ON ro_t.id = ra_t.roleid
-                                             AND ro_t.shortname IN ('editingteacher','teacher')
-                JOIN   {user}            u_t  ON u_t.id = ra_t.userid
-                                             AND u_t.deleted = 0 AND u_t.suspended = 0
-                WHERE  ue_t.status = 0
-                GROUP  BY ue_t.userid
-            ) t_map ON t_map.student_id = u.id
-            LEFT JOIN {user} trainer ON trainer.id = t_map.trainer_id
+            LEFT JOIN {user_info_data} uid_tr
+                   ON uid_tr.userid = u.id AND uid_tr.fieldid = :tf_id
+            LEFT JOIN {user} trainer
+                   ON trainer.deleted = 0 AND trainer.suspended = 0
+                  AND LOWER(TRIM({$sqlTrainerFullname}))
+                    = LOWER(TRIM(uid_tr.data))
         ";
 
         // Max last-access across all courses, per user.
         $sql = "
             SELECT
                 u.id                                                 AS userid,
-                CONCAT(u.firstname, ' ', u.lastname)                AS fullname,
+                {$sqlFullname}                                       AS fullname,
                 u.email,
                 COALESCE(coh.name, '')                              AS cohort_name,
                 COALESCE(g.name, '')                                AS group_name,
-                COALESCE(MAX(ula.timeaccess), 0)                    AS last_access,
-                FLOOR((:now_ts - COALESCE(MAX(ula.timeaccess), u.firstaccess)) / 86400)
+                -- Effective last access = latest of per-course access AND the site-wide
+                -- last login (u.lastaccess). Previously only per-course access was used, so a
+                -- student who logged into the site but did not open a course looked inactive
+                -- (the Savanna Horton symptom: logged in today, report showed an old date).
+                GREATEST(COALESCE(MAX(ula.timeaccess), 0), COALESCE(u.lastaccess, 0)) AS last_access,
+                FLOOR((:now_ts - GREATEST(COALESCE(MAX(ula.timeaccess), 0), COALESCE(u.lastaccess, 0), COALESCE(u.firstaccess, 0))) / 86400)
                                                                      AS days_inactive,
                 COALESCE(trainer.id, 0)                             AS trainer_id,
-                COALESCE(CONCAT(trainer.firstname, ' ', trainer.lastname), '')
+                COALESCE({$sqlTrainerFullname}, NULLIF(TRIM(uid_tr.data), ''), '')
                                                                      AS trainer_name
             FROM {user} u
             -- Active enrolments only
@@ -166,9 +176,9 @@ class get_student_inactivity extends \external_api {
               AND u.username != 'guest'
               $cohortWhere
               $trainerWhere
-            GROUP BY u.id, u.firstname, u.lastname, u.email, u.firstaccess,
-                     coh.name, g.name, trainer.id, trainer.firstname, trainer.lastname
-            HAVING COALESCE(MAX(ula.timeaccess), u.firstaccess) <= :cutoff
+            GROUP BY u.id, u.firstname, u.lastname, u.email, u.firstaccess, u.lastaccess,
+                     coh.name, g.name, trainer.id, trainer.firstname, trainer.lastname, uid_tr.data
+            HAVING GREATEST(COALESCE(MAX(ula.timeaccess), 0), COALESCE(u.lastaccess, 0), COALESCE(u.firstaccess, 0)) <= :cutoff
             ORDER BY days_inactive DESC
         ";
 
@@ -192,7 +202,7 @@ class get_student_inactivity extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'        => new \external_value(PARAM_INT,  'Student user ID'),

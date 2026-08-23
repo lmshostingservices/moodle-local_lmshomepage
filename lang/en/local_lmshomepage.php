@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Language strings for local_lmshomepage.
+ * Part of the local_lmshomepage plugin.
  *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -40,6 +40,13 @@ $string['apitoken']          = 'API token (optional)';
 $string['apitoken_desc']     = 'Optional bearer token passed as Authorization header when calling the dashboard API.';
 $string['enabled']           = 'Enable dashboard';
 $string['enabled_desc']      = 'Show the custom LMS Home Page on the Moodle front page. When enabled the standard Moodle front page content is replaced by the dashboard widget.';
+
+$string['heading_reporting_exclusions']      = 'Reporting exclusions';
+$string['heading_reporting_exclusions_desc'] = 'These exclusions are applied in the database query used by both the Trainer Marking Report and the Overdue Submissions / Grading Backlog KPIs. Enter one pattern per line. Matching is case-insensitive, applies to the whole value, and supports * as a wildcard (for example, test* or *staff*). Leave either field blank when it is not needed.';
+$string['excluded_user_patterns']            = 'Excluded username patterns';
+$string['excluded_user_patterns_desc']       = 'One Moodle username pattern per line. A pattern without * matches the whole username exactly. * matches any number of characters. Matching accounts are removed before report rows and KPI totals are calculated.';
+$string['excluded_course_patterns']          = 'Excluded course-name patterns';
+$string['excluded_course_patterns_desc']     = 'One Moodle course full-name pattern per line. A pattern without * matches the whole course name exactly. * matches any number of characters. Matching courses are removed before report rows and KPI totals are calculated.';
 
 // ── Attendance KPI global settings ──────────────────────────────────────────
 
@@ -167,7 +174,7 @@ This notification was sent automatically by the LMS attendance monitoring system
 $string['heading_high_risk']      = '🔴  Stage 3 — High Risk';
 $string['heading_high_risk_desc'] = 'Sent when a student\'s attendance falls below the High Risk threshold (e.g. below 60% with default settings). An urgent escalation message requiring immediate action. Teachers and optionally admin/management are notified.';
 
-$string['high_risk_subject_default'] = 'URGENT: Critical attendance level — {course}';
+$string['high_risk_subject_default'] = 'Urgent: Critical attendance level — {course}';
 
 $string['high_risk_student_body_default'] = 'Hi {firstname},
 
@@ -188,7 +195,7 @@ Kind regards,
 
 $string['high_risk_teacher_body_default'] = 'Hi {teacher_firstname},
 
-URGENT: {fullname} has reached a critical attendance level of {percentage}% in {course} (required: {threshold}%).
+Urgent: {fullname} has reached a critical attendance level of {percentage}% in {course} (required: {threshold}%).
 
 Sessions attended: {sessions_attended} of {sessions_total}
 

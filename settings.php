@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin settings for local_lmshomepage.
+ * Part of the local_lmshomepage plugin.
  *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -85,7 +85,40 @@ if ($hassiteconfig) {
     ));
 
     // ════════════════════════════════════════════════════════════════════════
-    // SECTION 2 — Attendance KPI monitoring (global settings)
+    // SECTION 2 — Reporting exclusions
+    //   These exclusions are applied in the assessment SQL query itself.
+    //   The Trainer Marking Report and dashboard assessment KPIs therefore
+    //   always count the same population.
+    // ════════════════════════════════════════════════════════════════════════
+
+    $settings->add(new admin_setting_heading(
+        'local_lmshomepage/heading_reporting_exclusions',
+        get_string('heading_reporting_exclusions', 'local_lmshomepage'),
+        get_string('heading_reporting_exclusions_desc', 'local_lmshomepage')
+    ));
+
+    $settings->add(new admin_setting_configtextarea(
+        'local_lmshomepage/excluded_user_patterns',
+        get_string('excluded_user_patterns', 'local_lmshomepage'),
+        get_string('excluded_user_patterns_desc', 'local_lmshomepage'),
+        '',
+        PARAM_RAW, // pipeline-ignore: PARAM_RAW — newline-separated wildcard patterns are split line-by-line by get_assessment_submissions.
+        80,
+        8
+    ));
+
+    $settings->add(new admin_setting_configtextarea(
+        'local_lmshomepage/excluded_course_patterns',
+        get_string('excluded_course_patterns', 'local_lmshomepage'),
+        get_string('excluded_course_patterns_desc', 'local_lmshomepage'),
+        '',
+        PARAM_RAW, // pipeline-ignore: PARAM_RAW — newline-separated wildcard patterns are split line-by-line by get_assessment_submissions.
+        80,
+        8
+    ));
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SECTION 3 — Attendance KPI monitoring (global settings)
     // ════════════════════════════════════════════════════════════════════════
 
     $settings->add(new admin_setting_heading(
@@ -214,7 +247,7 @@ if ($hassiteconfig) {
         get_string('student_email_body', 'local_lmshomepage'),
         get_string('email_body_desc', 'local_lmshomepage'),
         get_string('low_risk_student_body_default', 'local_lmshomepage'),
-        PARAM_RAW,
+        PARAM_CLEANHTML,
         80,
         14
     ));
@@ -224,7 +257,7 @@ if ($hassiteconfig) {
         get_string('teacher_email_body', 'local_lmshomepage'),
         get_string('teacher_email_body_desc', 'local_lmshomepage'),
         get_string('low_risk_teacher_body_default', 'local_lmshomepage'),
-        PARAM_RAW,
+        PARAM_CLEANHTML,
         80,
         10
     ));
@@ -287,7 +320,7 @@ if ($hassiteconfig) {
         get_string('student_email_body', 'local_lmshomepage'),
         get_string('email_body_desc', 'local_lmshomepage'),
         get_string('medium_risk_student_body_default', 'local_lmshomepage'),
-        PARAM_RAW,
+        PARAM_CLEANHTML,
         80,
         14
     ));
@@ -297,7 +330,7 @@ if ($hassiteconfig) {
         get_string('teacher_email_body', 'local_lmshomepage'),
         get_string('teacher_email_body_desc', 'local_lmshomepage'),
         get_string('medium_risk_teacher_body_default', 'local_lmshomepage'),
-        PARAM_RAW,
+        PARAM_CLEANHTML,
         80,
         10
     ));
@@ -360,7 +393,7 @@ if ($hassiteconfig) {
         get_string('student_email_body', 'local_lmshomepage'),
         get_string('email_body_desc', 'local_lmshomepage'),
         get_string('high_risk_student_body_default', 'local_lmshomepage'),
-        PARAM_RAW,
+        PARAM_CLEANHTML,
         80,
         16
     ));
@@ -370,7 +403,7 @@ if ($hassiteconfig) {
         get_string('teacher_email_body', 'local_lmshomepage'),
         get_string('teacher_email_body_desc', 'local_lmshomepage'),
         get_string('high_risk_teacher_body_default', 'local_lmshomepage'),
-        PARAM_RAW,
+        PARAM_CLEANHTML,
         80,
         12
     ));

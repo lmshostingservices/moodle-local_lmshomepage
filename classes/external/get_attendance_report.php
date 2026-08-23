@@ -2,17 +2,17 @@
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// You can redistribute it and/or modify it under the terms of the GNU General Public License
+// As published by the Free Software Foundation, either version 3 of the License, or any later version.
 // (at your option) any later version.
 //
 // Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// However, it is WITHOUT ANY WARRANTY, including implied warranties of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU General Public License along with Moodle.
+// If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * External function: local_lmshomepage_get_attendance_report
@@ -40,8 +40,9 @@
  *   trainer_userid  — teacher/editingteacher in course context
  *   from_date       — Unix timestamp; sessions on or after this date
  *   to_date         — Unix timestamp; sessions on or before this date
+ *
  * @package    local_lmshomepage
- * @copyright  2024 LMS Labs <support@lmslabs.com.au>
+ * @copyright  2026 College Australia
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -52,7 +53,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 class get_attendance_report extends \external_api {
-    public static function execute_parameters (): \external_function_parameters {
+    public static function execute_parameters(): \external_function_parameters {
         return new \external_function_parameters([
             'course_id'      => new \external_value(PARAM_INT, 'Filter to a course. 0 = all.',       VALUE_DEFAULT, 0),
             'student_userid' => new \external_value(PARAM_INT, 'Filter to a student. 0 = all.',      VALUE_DEFAULT, 0),
@@ -64,7 +65,7 @@ class get_attendance_report extends \external_api {
         ]);
     }
 
-    public static function execute (
+    public static function execute(
         int $course_id      = 0,
         int $student_userid = 0,
         int $group_id       = 0,
@@ -75,6 +76,17 @@ class get_attendance_report extends \external_api {
     ): array {
         global $DB;
 
+        self::validate_context(\context_system::instance());
+        self::validate_parameters(self::execute_parameters(), [
+            'course_id'      => $course_id,
+            'student_userid' => $student_userid,
+            'group_id'       => $group_id,
+            'cohort_id'      => $cohort_id,
+            'trainer_userid' => $trainer_userid,
+            'from_date'      => $from_date,
+            'to_date'        => $to_date,
+        ]);
+
         // Bail early if mod_attendance not installed.
         $attendModId = $DB->get_field('modules', 'id', ['name' => 'attendance']);
         if (!$attendModId) {
@@ -84,7 +96,7 @@ class get_attendance_report extends \external_api {
         $now    = time();
         $params = [
             'now1'        => $now,
-            'now2'        => $now,   // used to exclude future sessions from totals
+            'now2'        => $now,   // Used to exclude future sessions from totals
             'attend_mod'  => (int) $attendModId,
         ];
 
@@ -141,13 +153,18 @@ class get_attendance_report extends \external_api {
         // ── Step 1: fetch all sessions with per-student marks ─────────────────
         // Groups and cohorts are resolved via deterministic subqueries to avoid
         // Cartesian-product row duplication (a student in N groups × M cohorts
-        // would otherwise produce N×M rows per session, inflating all counters).
+        // Would otherwise produce N×M rows per session, inflating all counters).
+
+        // ── DB-portable string concatenation helpers ──────────────────────────
+        $sql_recid        = $DB->sql_concat('u.id', "'_'", 'attn.id', "'_'", 'sess.id');
+        $sql_fullname     = $DB->sql_concat('u.firstname', "' '", 'u.lastname');
+        $sql_trainer_name = $DB->sql_concat('trainer.firstname', "' '", 'trainer.lastname');
 
         $sql = "
             SELECT
-                CONCAT(u.id, '_', attn.id, '_', sess.id)           AS recid,
-                u.id                                                 AS userid,
-                CONCAT(u.firstname, ' ', u.lastname)                AS fullname,
+                {$sql_recid}                                                 AS recid,
+                u.id                                                         AS userid,
+                {$sql_fullname}                                              AS fullname,
                 COALESCE(u.idnumber, '')                            AS student_idnumber,
                 c.id                                                 AS courseid,
                 c.fullname                                           AS course_name,
@@ -163,7 +180,7 @@ class get_attendance_report extends \external_api {
                 COALESCE(coh_sub.cohort_name, '')                   AS cohort_name,
                 COALESCE(ats.acronym, '')                           AS mark_acronym,
                 COALESCE(trainer.id, 0)                             AS trainer_id,
-                COALESCE(CONCAT(trainer.firstname,' ',trainer.lastname), '') AS trainer_name,
+                COALESCE({$sql_trainer_name}, '')                   AS trainer_name,
                 COALESCE(trainer.email, '')                         AS trainer_email
             FROM   {attendance}         attn
             JOIN   {course_modules}      cm   ON cm.instance = attn.id AND cm.module = :attend_mod
@@ -230,7 +247,7 @@ class get_attendance_report extends \external_api {
 
         // ── Step 2: aggregate per student × attendance instance ──────────────
         // Track which (userid, attendance_id) session IDs have already been
-        // counted to prevent any remaining duplicate rows from inflating counters.
+        // Counted to prevent any remaining duplicate rows from inflating counters.
         $agg          = [];
         $seen_sessions = [];
 
@@ -274,9 +291,9 @@ class get_attendance_report extends \external_api {
             $acronym = strtoupper(trim($row->mark_acronym));
             if ($acronym !== '') {
                 // Only count sessions where a mark has been recorded in the
-                // denominator.  Unmarked past sessions must not penalise students
-                // before the teacher has entered attendance — a session where no
-                // mark exists is not yet "held" from the reporting perspective.
+                // Denominator.  Unmarked past sessions must not penalise students
+                // Before the teacher has entered attendance — a session where no
+                // Mark exists is not yet "held" from the reporting perspective.
                 $agg[$key]['sessions_marked']++;
                 if (in_array($acronym, ['P', 'L', 'E'])) {
                     // Present, Late, Excused → attended
@@ -285,18 +302,18 @@ class get_attendance_report extends \external_api {
                     $agg[$key]['missed_sessions']++;
                 }
                 // Any other custom acronym (AU, AE, UA, MED, etc.) increments
-                // sessions_marked only — counts against attendance % without
-                // inflating missed_sessions, which matches Moodle export behaviour.
+                // Sessions_marked only — counts against attendance % without
+                // Inflating missed_sessions, which matches Moodle export behaviour.
             }
         }
 
         // ── Step 3: compute percentages and at-risk flag ──────────────────────
         // Denominator: sessions_marked (sessions where any mark was recorded).
         // Past sessions with no mark are NOT counted — a student who attended
-        // every marked session should show 100% even while unmarked sessions
-        // are still outstanding.  total_sessions is kept in the output for
-        // reference (shows how many sessions have occurred overall) but is not
-        // used as the denominator.
+        // Every marked session should show 100% even while unmarked sessions
+        // Are still outstanding.  total_sessions is kept in the output for
+        // Reference (shows how many sessions have occurred overall) but is not
+        // Used as the denominator.
         $result = [];
         foreach ($agg as $entry) {
             $total    = $entry['total_sessions'];
@@ -314,7 +331,7 @@ class get_attendance_report extends \external_api {
         return $result;
     }
 
-    public static function execute_returns (): \external_multiple_structure {
+    public static function execute_returns(): \external_multiple_structure {
         return new \external_multiple_structure(
             new \external_single_structure([
                 'userid'            => new \external_value(PARAM_INT,   'Student user ID'),
