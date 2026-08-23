@@ -113,6 +113,33 @@ class outcome_history {
     }
 
     /**
+     * Build a MariaDB collation-safe resolved-outcome expression.
+     *
+     * The Training Plan block owns both the current-outcome and transition-log
+     * schemas. On Wombat, its current outcome column uses utf8mb4_unicode_ci
+     * while the transition log uses utf8mb4_general_ci. MariaDB gives a
+     * mixed-collation COALESCE expression coercibility NONE, then rejects a
+     * comparison such as "= 'RPL'" with Error 1267. Apply one explicit
+     * collation to both nullable values before combining them.
+     *
+     * @param string $historyalias SQL alias returned by as_at_join().
+     * @param string $currentfield Fully-qualified current outcome SQL field.
+     * @return string SQL expression resolving historical then current outcome.
+     */
+    public static function resolved_outcome_expression(
+        string $historyalias,
+        string $currentfield
+    ): string {
+        return "
+            COALESCE(
+                NULLIF({$historyalias}.newoutcome, '') COLLATE utf8mb4_general_ci,
+                NULLIF({$currentfield}, '') COLLATE utf8mb4_general_ci,
+                ''
+            )
+        ";
+    }
+
+    /**
      * Build a correlated join that returns the newest transition at or before
      * $asat for a user/course pair. An ID tie-breaker makes equal timestamps
      * deterministic.

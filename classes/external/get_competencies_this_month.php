@@ -133,6 +133,10 @@ class get_competencies_this_month extends \external_api {
             $date_to - 1,
             $params
         );
+        $outcomeExpression = \local_lmshomepage\local\outcome_history::resolved_outcome_expression(
+            'hist',
+            'tp.outcome'
+        );
 
         // ── Trainer from 'trainername' custom profile field ────────────────
         $trainerFieldId = (int)$DB->get_field('user_info_field', 'id', ['shortname' => 'trainername']);
@@ -173,7 +177,7 @@ class get_competencies_this_month extends \external_api {
                 COALESCE(NULLIF(c.fullname, ''), c.shortname)            AS course_fullname,
                 COALESCE(coh_sub.cohort_name, '')                        AS cohort_name,
                 fms.deemedcompetentdate                                   AS deemed_competent_date,
-                COALESCE(NULLIF(hist.newoutcome, ''), NULLIF(tp.outcome, ''), '') AS outcome,
+                $outcomeExpression                                      AS outcome,
                 COALESCE(hist.newoutcome, '')                             AS history_outcome,
                 COALESCE(tp.outcome, '')                                  AS current_outcome,
                 COALESCE(trainer.id, 0)                                  AS trainer_id,

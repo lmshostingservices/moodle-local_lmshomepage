@@ -1910,5 +1910,19 @@ function xmldb_local_lmshomepage_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026082303, 'local', 'lmshomepage');
     }
 
+    // ── v2.11.60 (2026082400) ────────────────────────────────────────────────
+    //
+    // Historical Training Plan outcomes: no schema changes.
+    //
+    // block_trainingplan_userseq.outcome can use utf8mb4_unicode_ci while the
+    // separately maintained transition-log newoutcome column uses
+    // utf8mb4_general_ci. MariaDB rejects a COALESCE of those values when it is
+    // compared in a report predicate (Error 1267). Shared report SQL now applies
+    // utf8mb4_general_ci to both operands before combining them.
+    //
+    if ($oldversion < 2026082400) {
+        upgrade_plugin_savepoint(true, 2026082400, 'local', 'lmshomepage');
+    }
+
     return true;
 }

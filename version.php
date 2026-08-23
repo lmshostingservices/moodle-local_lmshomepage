@@ -24,11 +24,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026082303;        // YYYYMMDDNN — standard 10-digit Moodle format; NN = 00–99 daily increment
+$plugin->version   = 2026082400;        // YYYYMMDDNN — standard 10-digit Moodle format; NN = 00–99 daily increment
 $plugin->requires  = 2022041900;        // Moodle 4.0+
 $plugin->component = 'local_lmshomepage';
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.11.59';         // 2.11.59: release pipeline hardening.
+$plugin->release   = '2.11.60';         // 2.11.60: collation-safe historical Training Plan outcomes.
                                          // 2.11.58: get_assessment_submissions performance rewrite.
                                          // Replaces whole-table Training Plan aggregates with
                                          // student/course-correlated lookups, resolves trainer
