@@ -24,11 +24,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026082602;        // YYYYMMDDNN — standard 10-digit Moodle format; NN = 00–99 daily increment
+$plugin->version   = 2026082603;        // YYYYMMDDNN — standard 10-digit Moodle format; NN = 00–99 daily increment
 $plugin->requires  = 2022041900;        // Moodle 4.0+
 $plugin->component = 'local_lmshomepage';
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.11.65';         // 2.11.65: keep the Wombat Moodle login card within the initial viewport.
+$plugin->release   = '2.11.66';         // 2.11.66: real Privacy API implementation. The plugin declared
+                                         // null_provider -- no personal data at all -- while storing
+                                         // learner names, email addresses and message bodies in three
+                                         // tables. Full metadata/plugin/userlist provider added.
+                                         // 2.11.65: keep the Wombat Moodle login card within the initial viewport.
                                          // 2.11.64: read plugin version metadata directly from version.php.
                                          // 2.11.63: expose usernames in AIOP grade and attendance reports.
                                          // 2.11.62: expose derived grade-report submission status.

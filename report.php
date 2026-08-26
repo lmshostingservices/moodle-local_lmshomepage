@@ -119,7 +119,9 @@ if ($export === 'csv') {
     $fname = 'attendance_notifications_' . date('Y-m-d_His') . '.csv';
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $fname . '"');
-    header('Cache-Control: no-cache'); header('Pragma: no-cache'); header('Expires: 0');
+    header('Cache-Control: no-cache');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     $fh = fopen('php://output', 'w');
     fwrite($fh, "\xEF\xBB\xBF");
     fputcsv($fh, ['Date','Time','Student Name','Student Email','Course','Activity','Attendance %','KPI Threshold %','Risk Level','Recipient Type','Recipient Name','Email Subject']);
@@ -132,7 +134,8 @@ if ($export === 'csv') {
             ucfirst($r->recipient_type), $r->recipient_name, $r->subject,
         ]);
     }
-    fclose($fh); exit;
+    fclose($fh);
+    exit;
 }
 
 // ── Fetch display data ────────────────────────────────────────────────────────

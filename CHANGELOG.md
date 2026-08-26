@@ -7,6 +7,46 @@ in `version.php`, which is where this plugin recorded its changes until now. The
 theirs; only the formatting is new. `version.php` remains the source of truth for the version
 numbers themselves.
 
+## [2.11.66] - 2026-08-26
+
+### Fixed - the privacy declaration was false
+
+- **`classes/privacy/provider.php` implemented `null_provider`.** That is a formal assertion to
+  Moodle and to every site administrator that this plugin stores **no personal data at all**. The
+  plugin creates three tables and all three hold personal data:
+
+  | Table | Personal data |
+  |---|---|
+  | `local_lmshomepage_reminders` | `userid`, `courseid`, risk level |
+  | `local_lmshomepage_log` | `userid`, student name, student email, recipient user id, recipient name, notification subject, risk level, percentage |
+  | `local_lmshomepage_commhub` | student id, student name, student email, trainer id, trainer name, message subject and **message body** |
+
+  The `privacy:metadata` string went further and stated "No message content is stored", which
+  `local_lmshomepage_commhub.message_body` contradicts directly.
+
+  The effect was not only that the Moodle Plugins Directory would reject it. On every site running
+  the plugin, a subject access request returned nothing from it and an erasure request deleted
+  nothing, while the data was really there.
+
+- Replaced with a full implementation: `metadata\provider`, `request\plugin\provider` and
+  `request\core_userlist_provider`, declaring all three tables field by field and implementing
+  `get_contexts_for_userid`, `get_users_in_context`, `export_user_data`, `delete_data_for_user`,
+  `delete_data_for_all_users_in_context` and `delete_data_for_users`.
+
+  A single row can name two people — a notification names the learner it is about *and* the person
+  it was sent to; a Communication Hub message names the student *and* the trainer. Finding and
+  exporting search both roles, and the export separates "about you" from "sent to you" so the
+  subject can tell which is which.
+
+  **Erasure does not treat the two alike.** The row exists to record something about the first
+  person, so when they leave it goes with them; when the second person leaves, only their own
+  fields are cleared (`recipient_userid`/`recipient_name`, `trainerid`/`trainer_name`). Deleting
+  on either match would mean one user's erasure request destroying another user's record — a
+  trainer leaving would take the learner's notification history with them.
+
+- The single `privacy:metadata` language string is replaced by 39 per-table and per-field strings
+  that describe what is actually stored.
+
 ## [2.11.65] - 2026-08-26
 
 ### Fixed
