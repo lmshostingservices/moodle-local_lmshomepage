@@ -1,5 +1,13 @@
 == LMS Home Page Plugin — Changelog ==
 
+Version 2.11.61  (2026-08-24)
+------------------------------
+FIXED: Historical Training Plan outcomes in the monthly RPL and Competencies
+reports now explicitly use utf8mb4_general_ci when a transition-log outcome,
+current userseq outcome, or outcome literal is combined or compared. This
+prevents MariaDB Error 1267 on sites where the separately maintained Training
+Plan tables use different utf8mb4 collations. No schema changes.
+
 Version 2.11.59  (2026-08-23)
 ------------------------------
 IMPROVED: Release packaging and validation hardening. Runtime input types now use

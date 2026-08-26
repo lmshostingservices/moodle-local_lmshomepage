@@ -34,11 +34,12 @@
  *   to_date         — Unix timestamp; include only records graded before this
  *
  * Returns:
- *   userid, fullname, student_idnumber,
+ *   userid, fullname, username, student_idnumber,
  *   courseid, course_name, course_code, course_startdate, course_enddate,
  *   group_name, cohort_name,
  *   grade_item_id, unit_name, unit_code,
  *   assessment_name, due_date, submitted_date, graded_date,
+ *   submission_status,                         ← graded / submitted / notsubmitted
  *   grade_percent, competency_status,   ← C / NYC / RPL / CT / ''
  *   completion_status,                  ← Complete / Incomplete / Not attempted
  *   trainer_id, trainer_name, trainer_email
@@ -160,6 +161,7 @@ class get_vet_grade_report extends \external_api {
                 {$sql_recid}                                            AS recid,
                 u.id                                                     AS userid,
                 {$sql_fullname}                                         AS fullname,
+                COALESCE(u.username, '')                                AS username,
                 COALESCE(u.idnumber, '')                                AS student_idnumber,
                 c.id                                                     AS courseid,
                 c.fullname                                               AS course_name,
@@ -326,10 +328,16 @@ class get_vet_grade_report extends \external_api {
             $lookupKey    = "{$userId}_{$cmId}";
             $dueDate      = (int) ($assignLookup[$lookupKey]->due_date ?? 0);
             $submittedDate = (int) ($assignLookup[$lookupKey]->submitted_date ?? 0);
+            // A grade is authoritative even when Moodle has no assignment
+            // submission row/timestamp (for example, a manually entered grade).
+            $submissionStatus = ($gradePercent >= 0 || (int)$row->graded_date > 0)
+                ? 'graded'
+                : ($submittedDate > 0 ? 'submitted' : 'notsubmitted');
 
             $result[] = [
                 'userid'            => $userId,
                 'fullname'          => (string) $row->fullname,
+                'username'          => (string) $row->username,
                 'student_idnumber'  => (string) $row->student_idnumber,
                 'courseid'          => (int)    $row->courseid,
                 'course_name'       => (string) $row->course_name,
@@ -344,6 +352,7 @@ class get_vet_grade_report extends \external_api {
                 'due_date'          => $dueDate,
                 'submitted_date'    => $submittedDate,
                 'graded_date'       => (int)    $row->graded_date,
+                'submission_status' => $submissionStatus,
                 'grade_percent'     => (float)  $gradePercent,
                 'competency_status' => $competencyStatus,
                 'completion_status' => $completionStatus,
@@ -361,6 +370,7 @@ class get_vet_grade_report extends \external_api {
             new \external_single_structure([
                 'userid'            => new \external_value(PARAM_INT,   'Student user ID'),
                 'fullname'          => new \external_value(PARAM_TEXT,  'Student full name'),
+                'username'          => new \external_value(PARAM_TEXT,  'Student Moodle username'),
                 'student_idnumber'  => new \external_value(PARAM_TEXT,  'Student ID number (e.g. SID-12345)'),
                 'courseid'          => new \external_value(PARAM_INT,   'Course ID'),
                 'course_name'       => new \external_value(PARAM_TEXT,  'Course full name'),
@@ -375,6 +385,7 @@ class get_vet_grade_report extends \external_api {
                 'due_date'          => new \external_value(PARAM_INT,   'Assessment due date (unix timestamp; 0 = none)'),
                 'submitted_date'    => new \external_value(PARAM_INT,   'Date student submitted (unix timestamp; 0 = not submitted)'),
                 'graded_date'       => new \external_value(PARAM_INT,   'Date graded (unix timestamp; 0 = not graded)'),
+                 'submission_status' => new \external_value(PARAM_ALPHA, 'Submission status: graded, submitted, or notsubmitted'),
                 'grade_percent'     => new \external_value(PARAM_FLOAT, 'Grade as percentage (-1 = not yet graded)'),
                 'competency_status' => new \external_value(PARAM_TEXT,  'VET competency status: C, NYC, RPL, CT, or empty string'),
                 'completion_status' => new \external_value(PARAM_TEXT,  'Completion status: Complete, Incomplete, or Not attempted'),

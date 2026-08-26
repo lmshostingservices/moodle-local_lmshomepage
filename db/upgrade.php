@@ -1924,5 +1924,57 @@ function xmldb_local_lmshomepage_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026082400, 'local', 'lmshomepage');
     }
 
+    // ── v2.11.61 (2026082401) ────────────────────────────────────────────────
+    //
+    // RPL report outcome collation: no schema changes.
+    //
+    // Explicitly align historical outcome-log values, current userseq values,
+    // and empty-string fallbacks before they are coalesced or compared. This
+    // prevents MariaDB Error 1267 on sites whose Training Plan tables use
+    // different utf8mb4 collations.
+    //
+    if ($oldversion < 2026082401) {
+        upgrade_plugin_savepoint(true, 2026082401, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.62 (2026082500) ────────────────────────────────────────────────
+    //
+    // Grade report submission status contract: no schema changes.
+    // The external function now returns a derived status for every row.
+    //
+    if ($oldversion < 2026082500) {
+        upgrade_plugin_savepoint(true, 2026082500, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.63 (2026082600) ────────────────────────────────────────────────
+    //
+    // AIOP grade and attendance report response contract: expose the Moodle
+    // username alongside the existing student ID number. No schema changes.
+    //
+    if ($oldversion < 2026082600) {
+        upgrade_plugin_savepoint(true, 2026082600, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.64 (2026082601) ────────────────────────────────────────────────
+    //
+    // Plugin version probe cache fix: no schema changes.
+    // get_plugin_info now reads version.php directly on every request instead
+    // of using core_plugin_manager's request-cached metadata.
+    //
+    if ($oldversion < 2026082601) {
+        upgrade_plugin_savepoint(true, 2026082601, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.65 (2026082602) ────────────────────────────────────────────────
+    //
+    // Wombat theme login layout correction only; no schema changes.
+    // The login page's nested flex wrapper was taller than the viewport,
+    // placing the sign-in card below the fold. The hook now injects a
+    // Wombat-only CSS override on login pages.
+    //
+    if ($oldversion < 2026082602) {
+        upgrade_plugin_savepoint(true, 2026082602, 'local', 'lmshomepage');
+    }
+
     return true;
 }

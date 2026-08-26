@@ -18,7 +18,7 @@
  * External function: local_lmshomepage_get_plugin_info
  *
  * Returns the installed plugin release string and version integer, read
- * directly from Moodle's plugin manager (which reads version.php on disk).
+ * directly from the plugin's version.php file.
  *
  * This function is intentionally the simplest possible — it requires no
  * parameters, performs no DB work, and is safe to call with any token that
@@ -56,17 +56,32 @@ class get_plugin_info extends \external_api {
     /**
      * Return installed plugin version metadata.
      *
-     * Reads the release string and version integer from Moodle's plugin
-     * manager, which reflects what is actually installed on disk.
+     * Reads version.php on every request so an upgrade is visible immediately.
+     * core_plugin_manager keeps plugin metadata in memory for the request and
+     * can briefly expose the previous release during the post-upgrade window.
      *
      * @return array { release: string, version: int }
      */
     public static function execute(): array {
         self::validate_context(\context_system::instance());
 
-        $info    = \core_plugin_manager::instance()->get_plugin_info('local_lmshomepage');
-        $release = $info ? (string) $info->release    : 'unknown';
-        $version = $info ? (int)    $info->versiondisk : 0;
+        $release = 'unknown';
+        $version = 0;
+        $plugindir = \core_component::get_plugin_directory('local_lmshomepage');
+
+        if (is_string($plugindir)) {
+            $versionfile = $plugindir . '/version.php';
+            if (is_readable($versionfile)) {
+                // version.php assigns its metadata to this local $plugin object.
+                // Use include (not include_once): Moodle may already have loaded
+                // the file elsewhere, but this probe needs a fresh disk read.
+                $plugin = new \stdClass();
+                include($versionfile);
+
+                $release = isset($plugin->release) ? (string) $plugin->release : 'unknown';
+                $version = isset($plugin->version) ? (int) $plugin->version : 0;
+            }
+        }
 
         return ['release' => $release, 'version' => $version];
     }

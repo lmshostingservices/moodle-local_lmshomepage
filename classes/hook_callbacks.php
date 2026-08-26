@@ -40,7 +40,18 @@ class hook_callbacks {
      */
     public static function before_standard_html_head(\core\hook\output\before_standard_head_html_generation $hook): void {
         static $head_done = false;
-        if ($head_done || !self::is_active()) {
+        if ($head_done) {
+            return;
+        }
+        // The login page is deliberately excluded from the dashboard widget,
+        // but the Wombat theme's nested flex wrappers need a small, scoped
+        // layout correction so the login card is visible without scrolling.
+        if (self::is_wombat_login_page()) {
+            $head_done = true;
+            $hook->add_html(self::wombat_login_css());
+            return;
+        }
+        if (!self::is_active()) {
             return;
         }
         $head_done = true;
@@ -87,6 +98,32 @@ class hook_callbacks {
              // Hide the default front-page Moodle course content (activities, sections, enrol button)
              . '.course-content,.frontpage-course-list,.frontpage-sections,'
              . '.siteadminnode,.page-mod-type-section{display:none!important;}'
+             . '</style>';
+    }
+
+    /**
+     * Keep the Wombat Moodle login card within the initial viewport.
+     *
+     * The Wombat theme currently puts a .wombat-paw-container inside a
+     * body.login-page that is itself a flex container. Its
+     * height:-webkit-fill-available rule can make the nested wrapper taller
+     * than the available viewport, pushing the login card below the fold.
+     * This is intentionally limited to the Wombat theme and login page.
+     */
+    private static function wombat_login_css(): string {
+        return '<style id="local-lmshomepage-wombat-login-fix">'
+             . 'html,body#page-login-index{min-height:100%;margin:0!important;}'
+             . 'body#page-login-index.login-page{display:block!important;'
+             . 'min-height:100vh!important;min-height:100dvh!important;'
+             . 'overflow-x:hidden!important;}'
+             . 'body#page-login-index.login-page>.wombat-paw-container{'
+             . 'display:flex!important;align-items:flex-start!important;'
+             . 'justify-content:center!important;width:100%!important;'
+             . 'min-height:100vh!important;min-height:100dvh!important;'
+             . 'height:auto!important;box-sizing:border-box!important;'
+             . 'padding:clamp(24px,7vh,56px) 20px 24px!important;}'
+             . 'body#page-login-index.login-page .login-container{'
+             . 'margin:0 auto!important;}'
              . '</style>';
     }
 
@@ -234,6 +271,19 @@ class hook_callbacks {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Detect only the Wombat theme's login page for the scoped CSS fix.
+     */
+    private static function is_wombat_login_page(): bool {
+        global $CFG, $PAGE;
+
+        if ((string)($CFG->theme ?? '') !== 'wombat') {
+            return false;
+        }
+
+        return $PAGE->pagelayout === 'login' || $PAGE->pagetype === 'login-index';
     }
 
     private static function api_url(): string {

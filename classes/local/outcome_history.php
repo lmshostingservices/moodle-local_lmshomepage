@@ -130,13 +130,41 @@ class outcome_history {
         string $historyalias,
         string $currentfield
     ): string {
+        $historyexpression = self::nonempty_outcome_expression($historyalias . '.newoutcome');
+        $currentexpression = self::nonempty_outcome_expression($currentfield);
         return "
             COALESCE(
-                NULLIF({$historyalias}.newoutcome, '') COLLATE utf8mb4_general_ci,
-                NULLIF({$currentfield}, '') COLLATE utf8mb4_general_ci,
-                ''
+                {$historyexpression},
+                {$currentexpression},
+                '' COLLATE utf8mb4_general_ci
             )
         ";
+    }
+
+    /**
+     * Build a collation-safe nullable outcome expression with an empty fallback.
+     *
+     * @param string $field Fully-qualified SQL outcome field.
+     * @return string SQL expression returning an outcome or an empty string.
+     */
+    public static function outcome_or_empty_expression(string $field): string {
+        return "
+            COALESCE(
+                {$field} COLLATE utf8mb4_general_ci,
+                '' COLLATE utf8mb4_general_ci
+            )
+        ";
+    }
+
+    /**
+     * Build a collation-safe literal for an outcome comparison.
+     *
+     * @param string $outcome Outcome code such as RPL or NYS.
+     * @return string SQL string literal with the shared outcome collation.
+     */
+    public static function outcome_literal_expression(string $outcome): string {
+        $escaped = str_replace("'", "''", $outcome);
+        return "'{$escaped}' COLLATE utf8mb4_general_ci";
     }
 
     /**
@@ -210,5 +238,20 @@ class outcome_history {
             }
         }
         return '';
+    }
+
+    /**
+     * Normalise a non-empty outcome before it is combined with another value.
+     *
+     * @param string $field Fully-qualified SQL outcome field.
+     * @return string SQL expression returning a non-empty outcome or NULL.
+     */
+    private static function nonempty_outcome_expression(string $field): string {
+        return "
+            NULLIF(
+                {$field} COLLATE utf8mb4_general_ci,
+                '' COLLATE utf8mb4_general_ci
+            )
+        ";
     }
 }

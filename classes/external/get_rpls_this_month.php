@@ -119,6 +119,13 @@ class get_rpls_this_month extends \external_api {
             'hist',
             'tp.outcome'
         );
+        $historyOutcomeExpression = \local_lmshomepage\local\outcome_history::outcome_or_empty_expression(
+            'hist.newoutcome'
+        );
+        $currentOutcomeExpression = \local_lmshomepage\local\outcome_history::outcome_or_empty_expression(
+            'tp.outcome'
+        );
+        $rplOutcomeExpression = \local_lmshomepage\local\outcome_history::outcome_literal_expression('RPL');
 
         $trainerFieldId = (int)$DB->get_field('user_info_field', 'id', ['shortname' => 'trainername']);
         $params['tf_id'] = $trainerFieldId > 0 ? $trainerFieldId : -1;
@@ -159,8 +166,8 @@ class get_rpls_this_month extends \external_api {
                 COALESCE(coh_sub.cohort_name, '')                        AS cohort_name,
                 tp.enddate                                                AS rpl_date,
                 $outcomeExpression                                      AS outcome,
-                COALESCE(hist.newoutcome, '')                             AS history_outcome,
-                COALESCE(tp.outcome, '')                                  AS current_outcome,
+                $historyOutcomeExpression                                  AS history_outcome,
+                $currentOutcomeExpression                                  AS current_outcome,
                 COALESCE(trainer.id, 0)                                  AS trainer_id,
                 COALESCE({$sqlTrainerFullname}, NULLIF(TRIM(uid_tr.data), ''), '') AS trainer_name
             FROM {block_trainingplan_userseq} tp
@@ -177,7 +184,7 @@ class get_rpls_this_month extends \external_api {
             $trainerJoin
             $historyJoin
             $cohortJoin
-            WHERE $outcomeExpression = 'RPL'
+            WHERE $outcomeExpression = $rplOutcomeExpression
               AND tp.enddate >= :date_from
               AND tp.enddate <  :date_to
               $trainerWhere

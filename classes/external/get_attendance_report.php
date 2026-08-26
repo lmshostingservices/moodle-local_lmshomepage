@@ -165,6 +165,7 @@ class get_attendance_report extends \external_api {
                 {$sql_recid}                                                 AS recid,
                 u.id                                                         AS userid,
                 {$sql_fullname}                                              AS fullname,
+                COALESCE(u.username, '')                                     AS username,
                 COALESCE(u.idnumber, '')                            AS student_idnumber,
                 c.id                                                 AS courseid,
                 c.fullname                                           AS course_name,
@@ -259,6 +260,7 @@ class get_attendance_report extends \external_api {
                 $agg[$key] = [
                     'userid'            => (int)    $row->userid,
                     'fullname'          => (string) $row->fullname,
+                    'username'          => (string) $row->username,
                     'student_idnumber'  => (string) $row->student_idnumber,
                     'courseid'          => (int)    $row->courseid,
                     'course_name'       => (string) $row->course_name,
@@ -336,6 +338,7 @@ class get_attendance_report extends \external_api {
             new \external_single_structure([
                 'userid'            => new \external_value(PARAM_INT,   'Student user ID'),
                 'fullname'          => new \external_value(PARAM_TEXT,  'Student full name'),
+                'username'          => new \external_value(PARAM_TEXT,  'Student Moodle username'),
                 'student_idnumber'  => new \external_value(PARAM_TEXT,  'Student ID number'),
                 'courseid'          => new \external_value(PARAM_INT,   'Course ID'),
                 'course_name'       => new \external_value(PARAM_TEXT,  'Course full name'),
