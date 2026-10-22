@@ -154,6 +154,15 @@ $functions = [
         'ajax'          => false,
         'services'      => ['lmshomepage_dashboard'],
     ],
+    'local_lmshomepage_get_activity_views' => [
+        'classname'     => \local_lmshomepage\external\get_activity_views::class,
+        'methodname'    => 'execute',
+        'description'   => 'Return visible course activities with completion and recorded view timestamps for one user.',
+        'type'          => 'read',
+        'loginrequired' => false,
+        'ajax'          => false,
+        'services'      => ['lmshomepage_dashboard'],
+    ],
 
     // ── 7. Assessment submissions ─────────────────────────────────────────────
     // Returns one row per assignment per student with VET status (NYS/IP/
@@ -206,6 +215,34 @@ $functions = [
         'methodname'    => 'execute',
         'description'   => 'Write a communication record to the CommHub log table.',
         'type'          => 'write',
+        'loginrequired' => false,
+        'ajax'          => false,
+        'services'      => ['lmshomepage_dashboard'],
+    ],
+    'local_lmshomepage_get_commhub_activity' => [
+        'classname'     => \local_lmshomepage\external\get_commhub_activity::class,
+        'methodname'    => 'execute',
+        'description'   => 'Read this plugin’s CommHub delivery log for one unique exact-email Moodle user match.',
+        'type'          => 'read',
+        'loginrequired' => false,
+        'ajax'          => false,
+        'services'      => ['lmshomepage_dashboard'],
+    ],
+
+    'local_lmshomepage_get_active_students_in_period' => [
+        'classname'     => \local_lmshomepage\external\get_active_students_in_period::class,
+        'methodname'    => 'execute',
+        'description'   => 'Read student activity events within an explicit reporting period.',
+        'type'          => 'read',
+        'loginrequired' => false,
+        'ajax'          => false,
+        'services'      => ['lmshomepage_dashboard'],
+    ],
+    'local_lmshomepage_get_commhub_messages' => [
+        'classname'     => \local_lmshomepage\external\get_commhub_messages::class,
+        'methodname'    => 'execute',
+        'description'   => 'Read student-scoped keyset-paged native CommHub messages and optional automation logs.',
+        'type'          => 'read',
         'loginrequired' => false,
         'ajax'          => false,
         'services'      => ['lmshomepage_dashboard'],
@@ -270,6 +307,15 @@ $functions = [
     // Single-query replacement for core_course_get_courses.
     // Returns only {id, fullname, shortname, categoryid, visible, numsections}
     // — ~50× smaller payload than the full course objects.
+    'local_lmshomepage_get_completion_batch' => [
+        'classname' => \local_lmshomepage\external\get_completion_batch::class,
+        'methodname' => 'execute',
+        'description' => 'Bounded course completion batch with core permission checks and conservative optional log delta.',
+        'type' => 'read',
+        'loginrequired' => true,
+        'ajax' => false,
+        'services' => ['lmshomepage_dashboard'],
+    ],
     'local_lmshomepage_get_slim_courses' => [
         'classname'     => \local_lmshomepage\external\get_slim_courses::class,
         'methodname'    => 'execute',
@@ -398,6 +444,7 @@ $services = [
             'local_lmshomepage_get_course_completion_counts',       // real completions from mdl_course_completions
             'local_lmshomepage_get_monthly_active_user_count',      // distinct users active in last N days
             'local_lmshomepage_get_slim_courses',                   // lightweight course list (replaces heavy core_course_get_courses)
+            'local_lmshomepage_get_completion_batch',               // at most 20 authorised students in one course
             'local_lmshomepage_get_enrolled_students',              // bulk enrolment query (replaces N individual API calls)
             'local_lmshomepage_get_user_courses',                   // bulk user courses with completion (replaces 1+2N per-learner calls)
 
@@ -408,6 +455,9 @@ $services = [
             'local_lmshomepage_get_cohort_matrix',                  // unit × student VET outcome grid
             'local_lmshomepage_get_trainer_allocations',            // student-to-trainer mapping
             'local_lmshomepage_log_commhub',                        // write CommHub communication record
+            'local_lmshomepage_get_commhub_activity',               // read plugin-owned CommHub log for a unique exact-email match
+            'local_lmshomepage_get_active_students_in_period',      // student activity within an explicit date range
+            'local_lmshomepage_get_commhub_messages',               // read native CommHub history; automation log is opt-in
             'local_lmshomepage_get_trainers',                       // trainers with email + student count
             'local_lmshomepage_get_admin_emails',                   // site admin email addresses
 
@@ -431,6 +481,7 @@ $services = [
             'core_course_get_categories',                           // course category tree (visible only)
             'local_lmshomepage_get_all_categories',                 // all categories including hidden (ITLC)
             'local_lmshomepage_get_completion_report',              // per-student activity + course completion with initial dates (ITLC)
+            'local_lmshomepage_get_activity_views',                 // per-student completion + standard-log view dates
 
             // ── Dashboard Data Review (12 Aug 2026) — split KPIs ──────────────
             'local_lmshomepage_get_competencies_this_month',        // genuine competencies from approved marking sheets

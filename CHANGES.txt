@@ -1,3 +1,44 @@
+Version 2.11.72  (2026-10-02)
+------------------------------
+FIXED: Replaced the log-only CommHub reader with read-only history from native
+block_todo_items notes, verified direct local_studentcomm messages, and optional
+automation logs. SQL applies exclusive keyset cursors before fetching at most
+limit+1 rows per source, so deep history is not truncated by a pre-cursor cap.
+Direct conversations require exactly two participants and the other participant
+must pass local_studentcomm's staff classifier; absent classifier scope fails
+closed. emailnote is reported as email_requested, not delivered. The existing
+web-service function is retained and idempotently registered. No schema changes.
+
+Version 2.11.70  (2026-10-02)
+------------------------------
+INTERMEDIATE: the first CommHub history reader was superseded before deployment
+by version 2.11.72; see that release for the active native-source contract.
+
+Version 2.11.69  (2026-10-02)
+------------------------------
+FIXED: get_plugin_info now resolves the plugin directory with Moodle's
+canonical core_component::get_plugin_directory('local', 'lmshomepage') call,
+preventing the ArgumentCountError caused by the Moodle 5 two-argument signature.
+No schema changes.
+
+Version 2.11.68  (2026-10-02)
+------------------------------
+NEW: local_lmshomepage_get_active_students_in_period reads retained student
+activity events within explicit start-inclusive/end-exclusive date bounds.
+NEW: local_lmshomepage_get_commhub_activity returns this plugin's delivery logs
+only after an exact, unique non-deleted Moodle email match. Native CommHub
+inbox/reply messages and CRM push-back are not included.
+FIXED: Completed Unit date ranges use exclusive end bounds, allowing Sydney
+inclusive end-date controls without accidentally including next-day records.
+No schema changes. Both new readers are enabled for the dashboard service
+by the upgrade step; the CommHub reader requires moodle/site:config.
+
+Version 2.11.67
+----------------
+NEW: local_lmshomepage_get_activity_views returns visible course activities,
+completion state/date, and standard-log first/last viewed timestamps for a user.
+No schema changes.
+
 == LMS Home Page Plugin — Changelog ==
 
 Version 2.11.61  (2026-08-24)

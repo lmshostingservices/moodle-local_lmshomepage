@@ -67,7 +67,7 @@ class get_plugin_info extends \external_api {
 
         $release = 'unknown';
         $version = 0;
-        $plugindir = \core_component::get_plugin_directory('local_lmshomepage');
+        $plugindir = \core_component::get_plugin_directory('local', 'lmshomepage');
 
         if (is_string($plugindir)) {
             $versionfile = $plugindir . '/version.php';

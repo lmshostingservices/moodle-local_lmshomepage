@@ -1,11 +1,34 @@
 LMS Home Page — Moodle Plugin
 ==============================
-Version: 2.11.54  (version code 2026082100)
+Version: 2.11.72  (version code 2026100204)
 Component: local_lmshomepage
 Requires: Moodle 4.0+ (also supports Moodle 5+)
 
-Latest change (2.11.54): reconciles completed-unit, marking, and cohort-matrix
-reporting sources; see CHANGES.txt for the full release history.
+Latest change (2.11.72): adds secure, keyset-paged native CommHub history;
+see CHANGES.txt for the packaged release notes and the repository's
+docs/commhub-native-reader.md for the full contract and install notes.
+
+CommHub MESSAGE HISTORY
+-----------------------
+The local_lmshomepage_get_commhub_messages web service reads native CommHub notes
+and verified direct student/staff messages. Optional plugin automation logs are
+included only when explicitly requested. It requires the integration token to
+have moodle/site:config. It is read-only and never sends or writes messages.
+The repository documentation covers source coverage, pagination, and install
+at docs/commhub-native-reader.md.
+
+The separate local_lmshomepage_get_commhub_activity endpoint also reads only
+this plugin-owned log and resolves a unique exact Moodle email match. It
+requires moodle/site:config. The native CommHub UI is /blocks/todo/view.php;
+its source/API is not included here or configured by these plugin log readers,
+so neither endpoint claims native CommHub or full conversation coverage.
+
+Contract: studentid is required and positive; beforeid defaults to 0 (newest
+page); limit defaults to 50 and must be 1-100. Results are ordered by message
+ID descending and include at most limit entries. Pass nextCursor as beforeid for
+the next page; nextCursor is 0 when there is no next page. Each message contains
+id, studentid, channel, subject, plaintext body, status, direction (outbound),
+and createdAt (Unix seconds).
 
 2.11.54 REPORTING RELEASE — INSTALL & VERIFY
 ---------------------------------------------

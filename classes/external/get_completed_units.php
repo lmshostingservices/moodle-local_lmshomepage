@@ -37,7 +37,7 @@
  * Usage (REST):
  *   wsfunction=local_lmshomepage_get_completed_units
  *   date_from=0          (int, unix timestamp — 0 = no lower bound on timecompleted)
- *   date_to=0            (int, unix timestamp — 0 = now)
+ *   date_to=0            (int, exclusive upper unix timestamp — 0 = now)
  *   cohort_id=0          (int, optional)
  *   trainer_userid=0     (int, optional)
  *
@@ -248,7 +248,7 @@ class get_completed_units extends \external_api {
                 ) grp_sub ON grp_sub.userid = u.id AND grp_sub.courseid = c.id
                 $trainerJoin
                 $cohortJoin
-                WHERE fms.fms_date <= :date_to
+                WHERE fms.fms_date < :date_to
                   $dateFromWhere
                   $trainerWhere
                   $cohortWhere
@@ -313,7 +313,7 @@ class get_completed_units extends \external_api {
                 $trainerJoin
                 $cohortJoin
                 WHERE cc.timecompleted IS NOT NULL
-                  AND cc.timecompleted <= :date_to
+                  AND cc.timecompleted < :date_to
                   $dateFromWhere
                   $trainerWhere
                   $cohortWhere

@@ -104,8 +104,7 @@ class get_student_inactivity extends \external_api {
         $params['now_ts']  = $now;
         $params['now_ts2'] = $now; // second reference in WHERE (named params can't repeat)
 
-        $cohortJoin  = '';
-        $cohortWhere = '';
+        $cohortJoin = '';
         if ($cohort_id > 0) {
             $params['cohort_id'] = $cohort_id;
             $cohortJoin  = "JOIN {cohort_members} cm2 ON cm2.userid = u.id AND cm2.cohortid = :cohort_id";
@@ -136,18 +135,14 @@ class get_student_inactivity extends \external_api {
                     = LOWER(TRIM(uid_tr.data))
         ";
 
-        // Max last-access across all courses, per user.
+        // Resolve inactivity first, before joining cohort and group display data.
+        // Joining enrolments, cohorts, groups and course access in one aggregate
+        // multiplies rows heavily on large sites and caused this report to time out.
         $sql = "
             SELECT
                 u.id                                                 AS userid,
                 {$sqlFullname}                                       AS fullname,
                 u.email,
-                COALESCE(coh.name, '')                              AS cohort_name,
-                COALESCE(g.name, '')                                AS group_name,
-                -- Effective last access = latest of per-course access AND the site-wide
-                -- last login (u.lastaccess). Previously only per-course access was used, so a
-                -- student who logged into the site but did not open a course looked inactive
-                -- (the Savanna Horton symptom: logged in today, report showed an old date).
                 GREATEST(COALESCE(MAX(ula.timeaccess), 0), COALESCE(u.lastaccess, 0)) AS last_access,
                 FLOOR((:now_ts - GREATEST(COALESCE(MAX(ula.timeaccess), 0), COALESCE(u.lastaccess, 0), COALESCE(u.firstaccess, 0))) / 86400)
                                                                      AS days_inactive,
@@ -160,13 +155,6 @@ class get_student_inactivity extends \external_api {
                  AND (ue.timeend = 0 OR ue.timeend > :now_ts2)
             JOIN {enrol} e            ON e.id = ue.enrolid
             JOIN {course} c           ON c.id = e.courseid AND c.id != 1 AND c.visible = 1
-            -- Cohort membership (first cohort found)
-            LEFT JOIN {cohort_members} cm  ON cm.userid = u.id
-            LEFT JOIN {cohort} coh         ON coh.id = cm.cohortid
-            -- Group membership (first group found)
-            LEFT JOIN {groups_members} gm  ON gm.userid = u.id
-            LEFT JOIN {groups} g           ON g.id = gm.groupid AND g.courseid = e.courseid
-            -- Last access per course
             LEFT JOIN {user_lastaccess} ula ON ula.userid = u.id AND ula.courseid = e.courseid
             $trainerJoin
             $cohortJoin
@@ -174,24 +162,62 @@ class get_student_inactivity extends \external_api {
               AND u.suspended = 0
               AND u.id       != 1
               AND u.username != 'guest'
-              $cohortWhere
               $trainerWhere
             GROUP BY u.id, u.firstname, u.lastname, u.email, u.firstaccess, u.lastaccess,
-                     coh.name, g.name, trainer.id, trainer.firstname, trainer.lastname, uid_tr.data
+                     trainer.id, trainer.firstname, trainer.lastname, uid_tr.data
             HAVING GREATEST(COALESCE(MAX(ula.timeaccess), 0), COALESCE(u.lastaccess, 0), COALESCE(u.firstaccess, 0)) <= :cutoff
             ORDER BY days_inactive DESC
         ";
 
         $rows = $DB->get_records_sql($sql, $params);
 
+        // Enrich only the much smaller set of inactive users with one cohort and
+        // one active-course group label. Keep the first non-empty value found,
+        // matching the report's previous single-label display contract.
+        $metadata = [];
+        if ($rows) {
+            [$insql, $inparams] = $DB->get_in_or_equal(array_keys($rows), SQL_PARAMS_NAMED, 'inactive');
+            $metasql = "
+                SELECT u.id AS userid, COALESCE(coh.name, '') AS cohort_name,
+                       COALESCE(g.name, '') AS group_name
+                  FROM {user} u
+             LEFT JOIN {cohort_members} cm ON cm.userid = u.id
+             LEFT JOIN {cohort} coh ON coh.id = cm.cohortid
+             LEFT JOIN {user_enrolments} ue ON ue.userid = u.id AND ue.status = 0
+                  AND (ue.timeend = 0 OR ue.timeend > :meta_now)
+             LEFT JOIN {enrol} e ON e.id = ue.enrolid
+             LEFT JOIN {course} c ON c.id = e.courseid AND c.id != 1 AND c.visible = 1
+             LEFT JOIN {groups_members} gm ON gm.userid = u.id
+             LEFT JOIN {groups} g ON g.id = gm.groupid AND g.courseid = c.id
+                 WHERE u.id $insql
+              ORDER BY u.id, coh.name, g.name
+            ";
+            $inparams['meta_now'] = $now;
+            $recordset = $DB->get_recordset_sql($metasql, $inparams);
+            foreach ($recordset as $meta) {
+                $userid = (int) $meta->userid;
+                if (!isset($metadata[$userid])) {
+                    $metadata[$userid] = ['cohort_name' => '', 'group_name' => ''];
+                }
+                if ($metadata[$userid]['cohort_name'] === '' && trim((string) $meta->cohort_name) !== '') {
+                    $metadata[$userid]['cohort_name'] = (string) $meta->cohort_name;
+                }
+                if ($metadata[$userid]['group_name'] === '' && trim((string) $meta->group_name) !== '') {
+                    $metadata[$userid]['group_name'] = (string) $meta->group_name;
+                }
+            }
+            $recordset->close();
+        }
+
         $result = [];
         foreach ($rows as $row) {
+            $meta = $metadata[(int) $row->userid] ?? ['cohort_name' => '', 'group_name' => ''];
             $result[] = [
                 'userid'       => (int)    $row->userid,
                 'fullname'     => (string) $row->fullname,
                 'email'        => (string) $row->email,
-                'cohort_name'  => (string) $row->cohort_name,
-                'group_name'   => (string) $row->group_name,
+                'cohort_name'  => $meta['cohort_name'],
+                'group_name'   => $meta['group_name'],
                 'last_access'  => (int)    $row->last_access,
                 'days_inactive'=> (int)    $row->days_inactive,
                 'trainer_id'   => (int)    $row->trainer_id,

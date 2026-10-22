@@ -221,53 +221,7 @@ $string['task_attendance_kpi_check'] = 'Attendance KPI check and escalation noti
 
 // ── Privacy ──────────────────────────────────────────────────────────────────
 
-// FIX-LMSHP-PRIVACY (v2.11.66): the single privacy:metadata string that used to sit here
-// described only the reminders table and stated "No message content is stored", while
-// local_lmshomepage_commhub stores message_subject and message_body. It backed a null_provider
-// declaration that asserted the plugin held no personal data at all. Replaced with per-table and
-// per-field strings that describe what is actually stored.
-$string['privacy:metadata:reminders'] = 'A record of attendance reminder notifications sent about a learner, so the same reminder is not sent twice.';
-$string['privacy:metadata:reminders:userid'] = 'The ID of the learner the reminder was about.';
-$string['privacy:metadata:reminders:courseid'] = 'The ID of the course the reminder related to.';
-$string['privacy:metadata:reminders:risk_level'] = 'The risk level that triggered the reminder.';
-$string['privacy:metadata:reminders:timesent'] = 'The time the reminder was sent.';
-
-$string['privacy:metadata:log'] = 'A log of KPI and attendance notifications, recording both the learner the notification was about and the person it was sent to.';
-$string['privacy:metadata:log:userid'] = 'The ID of the learner the notification was about.';
-$string['privacy:metadata:log:student_name'] = 'The name of the learner the notification was about.';
-$string['privacy:metadata:log:student_email'] = 'The email address of the learner the notification was about.';
-$string['privacy:metadata:log:courseid'] = 'The ID of the course the notification related to.';
-$string['privacy:metadata:log:course_name'] = 'The name of the course the notification related to.';
-$string['privacy:metadata:log:activity_name'] = 'The name of the activity the notification related to.';
-$string['privacy:metadata:log:risk_level'] = 'The risk level recorded for the learner.';
-$string['privacy:metadata:log:percentage'] = 'The completion or attendance percentage recorded for the learner.';
-$string['privacy:metadata:log:kpi_threshold'] = 'The KPI threshold the learner was measured against.';
-$string['privacy:metadata:log:recipient_type'] = 'Whether the notification went to the learner, a trainer or an administrator.';
-$string['privacy:metadata:log:recipient_userid'] = 'The ID of the person the notification was sent to.';
-$string['privacy:metadata:log:recipient_name'] = 'The name of the person the notification was sent to.';
-$string['privacy:metadata:log:subject'] = 'The subject line of the notification.';
-$string['privacy:metadata:log:timesent'] = 'The time the notification was sent.';
-
-$string['privacy:metadata:commhub'] = 'A record of messages sent through the Communication Hub, including the message content.';
-$string['privacy:metadata:commhub:studentid'] = 'The ID of the learner the message was about or addressed to.';
-$string['privacy:metadata:commhub:student_name'] = 'The name of the learner.';
-$string['privacy:metadata:commhub:student_email'] = 'The email address of the learner.';
-$string['privacy:metadata:commhub:trainerid'] = 'The ID of the trainer involved in the message.';
-$string['privacy:metadata:commhub:trainer_name'] = 'The name of the trainer involved in the message.';
-$string['privacy:metadata:commhub:courseid'] = 'The ID of the course the message related to.';
-$string['privacy:metadata:commhub:course_name'] = 'The name of the course the message related to.';
-$string['privacy:metadata:commhub:assessment_name'] = 'The name of the assessment the message related to.';
-$string['privacy:metadata:commhub:channel'] = 'The channel the message was sent through.';
-$string['privacy:metadata:commhub:message_subject'] = 'The subject line of the message.';
-$string['privacy:metadata:commhub:message_body'] = 'The full text of the message.';
-$string['privacy:metadata:commhub:status'] = 'Whether the message was sent successfully.';
-$string['privacy:metadata:commhub:timesent'] = 'The time the message was sent.';
-
-$string['privacy:path:reminders'] = 'Attendance reminders';
-$string['privacy:path:logabout'] = 'Notifications about you';
-$string['privacy:path:logreceived'] = 'Notifications sent to you';
-$string['privacy:path:commhubstudent'] = 'Communication Hub messages as a learner';
-$string['privacy:path:commhubtrainer'] = 'Communication Hub messages as a trainer';
+$string['privacy:metadata'] = 'The LMS Home Page plugin stores a record of when attendance reminder notifications were sent (in the local_lmshomepage_reminders table), containing only user ID, course ID, risk level, and the timestamp the notification was sent. No message content is stored. The current user\'s display name is passed to the dashboard widget for a personalised greeting but is not persisted externally.';
 
 // ── Message provider ─────────────────────────────────────────────────────────
 

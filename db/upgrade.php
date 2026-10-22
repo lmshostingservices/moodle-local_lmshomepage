@@ -1976,5 +1976,117 @@ function xmldb_local_lmshomepage_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026082602, 'local', 'lmshomepage');
     }
 
+    // ── v2.11.66 (2026091600) ────────────────────────────────────────────────
+    //
+    // Student Inactivity query performance fix; no schema changes.
+    //
+    if ($oldversion < 2026091600) {
+        upgrade_plugin_savepoint(true, 2026091600, 'local', 'lmshomepage');
+    }
+
+    // v2.11.67 — activity completion and standard-log viewed report.
+    if ($oldversion < 2026091700) {
+        $serviceid = $DB->get_field('external_services', 'id', ['shortname' => 'lmshomepage_dashboard']);
+        if ($serviceid && !$DB->record_exists('external_services_functions', [
+            'externalserviceid' => $serviceid,
+            'functionname' => 'local_lmshomepage_get_activity_views',
+        ])) {
+            $DB->insert_record('external_services_functions', (object)[
+                'externalserviceid' => $serviceid,
+                'functionname' => 'local_lmshomepage_get_activity_views',
+                'rpcencoded' => 0,
+            ]);
+        }
+        upgrade_plugin_savepoint(true, 2026091700, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.68 (2026100200) ──────────────────────────────────────────────
+    // Add event-period activity reporting and an exact-email, ID-scoped
+    // read-only view of the plugin-owned CommHub delivery logs.
+    // Completed Unit reporting uses an exclusive next-midnight end bound.
+    // No schema changes; native CommHub inbox integration is not implied.
+    if ($oldversion < 2026100200) {
+        $serviceid = $DB->get_field('external_services', 'id', ['shortname' => 'lmshomepage_dashboard']);
+        foreach ([
+            'local_lmshomepage_get_active_students_in_period',
+            'local_lmshomepage_get_commhub_activity',
+        ] as $functionname) {
+            if ($serviceid && !$DB->record_exists('external_services_functions', [
+                'externalserviceid' => $serviceid,
+                'functionname' => $functionname,
+            ])) {
+                $DB->insert_record('external_services_functions', (object)[
+                    'externalserviceid' => $serviceid,
+                    'functionname' => $functionname,
+                    'rpcencoded' => 0,
+                ]);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026100200, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.69 (2026100201) ──────────────────────────────────────────────
+    //
+    // Repair get_plugin_info's Moodle 5 plugin-directory lookup.
+    // core_component requires the plugin type and component name separately;
+    // the previous one-argument call raised ArgumentCountError. No schema changes.
+    if ($oldversion < 2026100201) {
+        upgrade_plugin_savepoint(true, 2026100201, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.70 (2026100202) ──────────────────────────────────────────────
+    //
+    // Register the immutable-student CommHub message-history reader.
+    // It reads only local_lmshomepage_commhub automation notification logs;
+    // no writes, sends, or native Moodle inbox access are introduced.
+    //
+    // No schema changes.
+    if ($oldversion < 2026100202) {
+        $serviceid = $DB->get_field('external_services', 'id', ['shortname' => 'lmshomepage_dashboard']);
+        if ($serviceid && !$DB->record_exists('external_services_functions', [
+            'externalserviceid' => $serviceid,
+            'functionname' => 'local_lmshomepage_get_commhub_messages',
+        ])) {
+            $DB->insert_record('external_services_functions', (object)[
+                'externalserviceid' => $serviceid,
+                'functionname' => 'local_lmshomepage_get_commhub_messages',
+                'rpcencoded' => 0,
+            ]);
+        }
+        upgrade_plugin_savepoint(true, 2026100202, 'local', 'lmshomepage');
+    }
+
+    // ── v2.11.72 (2026100204) ──────────────────────────────────────────────
+    //
+    // Replace the plugin-log-only draft with a read-only native CommHub reader.
+    // Source queries now apply an exclusive keyset cursor before the limit+1
+    // fetch, and studentcomm conversations require exactly one target student
+    // and a counterpart verified by local_studentcomm's trusted staff classifier.
+    // The existing service registration is retained and repaired idempotently.
+    //
+    // No schema changes.
+    if ($oldversion < 2026100204) {
+        $serviceid = $DB->get_field('external_services', 'id', ['shortname' => 'lmshomepage_dashboard']);
+        if ($serviceid && !$DB->record_exists('external_services_functions', [
+            'externalserviceid' => $serviceid,
+            'functionname' => 'local_lmshomepage_get_commhub_messages',
+        ])) {
+            $DB->insert_record('external_services_functions', (object)[
+                'externalserviceid' => $serviceid,
+                'functionname' => 'local_lmshomepage_get_commhub_messages',
+                'rpcencoded' => 0,
+            ]);
+        }
+        upgrade_plugin_savepoint(true, 2026100204, 'local', 'lmshomepage');
+    }
+
+    // v2.11.73 (2026102200): bounded course completion batching.
+    // Uses core completion permissions and optional standard-log cursors.
+    // Missing/expired log coverage or course writes force full reconciliation.
+    // No schema changes.
+    if ($oldversion < 2026102200) {
+        upgrade_plugin_savepoint(true, 2026102200, 'local', 'lmshomepage');
+    }
+
     return true;
 }
